@@ -1,0 +1,18 @@
+[package]
+name = "dharitri-sc-wrewa-swap-meta"
+version = "0.0.0"
+authors = ["contact@dharitri.org"]
+edition = "2021"
+publish = false
+
+[dev-dependencies]
+
+[dependencies.dharitri-sc-wrewa-swap]
+path = ".."
+
+[dependencies.dharitri-sc]
+version = "1.0.1"
+
+[dependencies.dharitri-sc-meta-lib]
+version = "1.0.1"
+default-features = false

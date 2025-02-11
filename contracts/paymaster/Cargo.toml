@@ -1,0 +1,25 @@
+[package]
+name = "paymaster"
+version = "0.0.0"
+authors = ["contact@dharitri.org"]
+edition = "2018"
+publish = false
+readme = "README.md"
+
+[lib]
+path = "src/paymaster.rs"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.dharitri-sc-scenario]
+version = "1.0.1"
+
+[dev-dependencies.adder]
+path = "../adder"
+
+[dev-dependencies.dharitri-sc-wrewa-swap]
+path = "../wrewa-swap"
+
+[dependencies.dharitri-sc]
+version = "1.0.1"

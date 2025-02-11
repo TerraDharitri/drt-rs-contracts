@@ -1,0 +1,15 @@
+[package]
+name = "token-release"
+version = "0.0.1"
+authors = ["contact@dharitri.org"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/token_release.rs"
+
+[dependencies.dharitri-sc]
+version = "1.0.1"
+
+[dev-dependencies.dharitri-sc-scenario]
+version = "1.0.1"

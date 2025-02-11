@@ -1,0 +1,15 @@
+[package]
+name = "drt-game-sc-meta"
+version = "0.0.0"
+edition = "2018"
+publish = false
+authors = ["contact@dharitri.org"]
+
+[dev-dependencies]
+
+[dependencies.drt-game-sc]
+path = ".."
+
+[dependencies.dharitri-sc-meta-lib]
+version = "1.0.1"
+default-features = false

@@ -1,0 +1,22 @@
+[package]
+name = "proxy-deployer"
+version = "0.0.0"
+authors = ["contact@dharitri.org"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.dharitri-sc]
+version = "=1.0.1"
+features = ["dcdt-token-payment-legacy-decode"]
+
+[dependencies.dharitri-sc-modules]
+version = "1.0.1"
+
+[dev-dependencies.dharitri-sc-scenario]
+version = "=1.0.1"
+
+[dev-dependencies.adder]
+path = "../adder"

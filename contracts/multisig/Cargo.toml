@@ -1,0 +1,32 @@
+[package]
+name = "multisig"
+version = "1.0.0"
+authors = ["contact@dharitri.org"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/multisig.rs"
+
+[dependencies.dharitri-sc]
+version = "1.0.1"
+
+[dependencies.dharitri-sc-modules]
+version = "1.0.1"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+num-traits = "0.2"
+hex = "0.4"
+
+[dev-dependencies.dharitri-sc-scenario]
+version = "1.0.1"
+
+[dev-dependencies.adder]
+path = "../adder"
+
+[dev-dependencies.factorial]
+path = "../factorial"
+
+[dev-dependencies.dharitri-sc-wrewa-swap]
+version = "1.0.1"

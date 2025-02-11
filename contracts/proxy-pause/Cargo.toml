@@ -1,0 +1,18 @@
+[package]
+name = "proxy-pause"
+version = "0.0.0"
+authors = ["contact@dharitri.org"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/proxy_pause.rs"
+
+[dependencies.dharitri-sc]
+version = "1.0.1"
+
+[dev-dependencies.dharitri-sc-scenario]
+version = "1.0.1"
+
+[dev-dependencies.check-pause]
+path = "../check-pause"

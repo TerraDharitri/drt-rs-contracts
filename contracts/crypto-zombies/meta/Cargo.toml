@@ -1,0 +1,12 @@
+[package]
+name = "crypto-zombies-meta"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[dependencies.crypto-zombies]
+path = ".."
+
+[dependencies.dharitri-sc-meta-lib]
+version = "1.0.1"
+default-features = false

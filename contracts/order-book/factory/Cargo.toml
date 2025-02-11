@@ -1,0 +1,14 @@
+[package]
+name = "order-book-factory"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.dharitri-sc]
+version = "1.0.1"
+
+[dev-dependencies.dharitri-sc-scenario]
+version = "1.0.1"

@@ -1,0 +1,13 @@
+[package]
+name = "ping-pong-rewa-meta"
+version = "0.0.0"
+authors = ["contact@dharitri.org"]
+edition = "2021"
+publish = false
+
+[dependencies.ping-pong-rewa]
+path = ".."
+
+[dependencies.dharitri-sc-meta-lib]
+version = "1.0.1"
+default-features = false

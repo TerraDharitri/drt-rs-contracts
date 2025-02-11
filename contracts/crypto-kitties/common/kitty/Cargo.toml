@@ -1,0 +1,16 @@
+[package]
+name = "kitty"
+version = "0.0.0"
+authors = ["contact@dharitri.org"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.dharitri-sc]
+version = "1.0.1"
+
+[dependencies.random]
+version = "0.0.0"
+path = "../random"

@@ -1,0 +1,94 @@
+{
+    "name": "wrap rewa",
+    "gasSchedule": "v4",
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:user": {
+                    "nonce": "0",
+                    "balance": "1000"
+                },
+                "sc:rewa_dcdt_swap": {
+                    "nonce": "0",
+                    "balance": "0",
+                    "dcdt": {
+                        "str:REWA-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "",
+                                    "balance": "1"
+                                }
+                            ],
+                            "roles": [
+                                "DCDTRoleLocalMint",
+                                "DCDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:wrappedRewaTokenId": "str:REWA-abcdef"
+                    },
+                    "code": "drtsc:../output/dharitri-sc-wrewa-swap.drtsc.json"
+                }
+            }
+        },
+        {
+            "step": "scCall",
+            "id": "wrap-rewa",
+            "tx": {
+                "from": "address:user",
+                "to": "sc:rewa_dcdt_swap",
+                "rewaValue": "500",
+                "function": "wrapRewa",
+                "arguments": [],
+                "gasLimit": "5,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [
+                    "nested:str:REWA-abcdef|u64:0|biguint:500"
+                ],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user": {
+                    "nonce": "1",
+                    "balance": "500",
+                    "dcdt": {
+                        "str:REWA-abcdef": "500"
+                    },
+                    "storage": {}
+                },
+                "sc:rewa_dcdt_swap": {
+                    "nonce": "0",
+                    "balance": "500",
+                    "dcdt": {
+                        "str:REWA-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "",
+                                    "balance": "1"
+                                }
+                            ],
+                            "roles": [
+                                "DCDTRoleLocalMint",
+                                "DCDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:wrappedRewaTokenId": "str:REWA-abcdef"
+                    },
+                    "code": "drtsc:../output/dharitri-sc-wrewa-swap.drtsc.json"
+                }
+            }
+        }
+    ]
+}

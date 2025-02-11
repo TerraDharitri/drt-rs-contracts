@@ -1,0 +1,18 @@
+[package]
+name = "mystery-box"
+version = "0.0.1"
+authors = ["contact@dharitri.org"]
+edition = "2021"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.dharitri-sc]
+version = "1.0.1"
+
+[dependencies.dharitri-sc-modules]
+version = "1.0.1"
+
+[dev-dependencies.dharitri-sc-scenario]
+version = "1.0.1"

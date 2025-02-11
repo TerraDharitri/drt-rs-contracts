@@ -1,0 +1,70 @@
+{
+    "name": "unwrap rewa",
+    "gasSchedule": "v4",
+    "steps": [
+        {
+            "step": "externalSteps",
+            "path": "wrap_rewa.scen.json"
+        },
+        {
+            "step": "scCall",
+            "id": "unwrap-rewa",
+            "tx": {
+                "from": "address:user",
+                "to": "sc:rewa_dcdt_swap",
+                "dcdtValue": [
+                    {
+                        "tokenIdentifier": "str:REWA-abcdef",
+                        "value": "300"
+                    }
+                ],
+                "function": "unwrapRewa",
+                "arguments": [],
+                "gasLimit": "5,000,000",
+                "gasPrice": "0"
+            },
+            "expect": {
+                "out": [],
+                "status": "0",
+                "message": "",
+                "gas": "*",
+                "refund": "*"
+            }
+        },
+        {
+            "step": "checkState",
+            "accounts": {
+                "address:user": {
+                    "nonce": "2",
+                    "balance": "800",
+                    "dcdt": {
+                        "str:REWA-abcdef": "200"
+                    },
+                    "storage": {}
+                },
+                "sc:rewa_dcdt_swap": {
+                    "nonce": "0",
+                    "balance": "200",
+                    "dcdt": {
+                        "str:REWA-abcdef": {
+                            "instances": [
+                                {
+                                    "nonce": "",
+                                    "balance": "1"
+                                }
+                            ],
+                            "roles": [
+                                "DCDTRoleLocalMint",
+                                "DCDTRoleLocalBurn"
+                            ]
+                        }
+                    },
+                    "storage": {
+                        "str:wrappedRewaTokenId": "str:REWA-abcdef"
+                    },
+                    "code": "drtsc:../output/dharitri-sc-wrewa-swap.drtsc.json"
+                }
+            }
+        }
+    ]
+}

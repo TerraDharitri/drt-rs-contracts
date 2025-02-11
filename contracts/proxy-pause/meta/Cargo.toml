@@ -1,0 +1,15 @@
+[package]
+name = "proxy-pause-meta"
+version = "0.0.0"
+edition = "2021"
+publish = false
+authors = ["contact@dharitri.org"]
+
+[dev-dependencies]
+
+[dependencies.proxy-pause]
+path = ".."
+
+[dependencies.dharitri-sc-meta-lib]
+version = "1.0.1"
+default-features = false

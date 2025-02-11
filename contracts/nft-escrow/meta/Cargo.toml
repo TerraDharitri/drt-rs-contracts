@@ -1,0 +1,15 @@
+[package]
+name = "nft-escrow-meta"
+version = "0.0.0"
+edition = "2018"
+publish = false
+authors = ["contact@dharitri.org"]
+
+[dev-dependencies]
+
+[dependencies.nft-escrow]
+path = ".."
+
+[dependencies.dharitri-sc-meta-lib]
+version = "1.0.1"
+default-features = false
