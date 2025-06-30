@@ -1,7 +1,7 @@
 ALICE="" # PEM path
 ADDRESS=$(drtpy data load --key=address-devnet)
 DEPLOY_TRANSACTION=$(drtpy data load --key=deployTransaction-devnet)
-PROXY=https://devnet-gateway.dharitri.org
+PROXY=https://devnet-gateway.dharitri.com
 CHAIN_ID=D
 
 deploy() {

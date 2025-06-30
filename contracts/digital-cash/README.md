@@ -1,6 +1,6 @@
 # Digital Cash Contract
 
-The basic idea of Dharitri Digital Cash is that ONE link can hold information (DCDT tokens, REWA) on chain, this link can be sent from one person to another, there is no need to hold any wallet to receive, consume and send it forward to another person.
+The basic idea of dharitrI Digital Cash is that ONE link can hold information (DCDT tokens, REWA) on chain, this link can be sent from one person to another, there is no need to hold any wallet to receive, consume and send it forward to another person.
 
 # Usage
 

@@ -18,7 +18,7 @@ pub struct Config {
     pub gateway_uri: String,
     pub chain_type: ChainType,
     pub relayer_addr: Bech32Address,
-    pub rewa_mex_pair_address: Bech32Address,
+    pub rewa_moa_pair_address: Bech32Address,
 }
 
 impl Config {

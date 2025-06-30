@@ -1,8 +1,8 @@
 chain_type = 'real'
-gateway_uri = 'https://devnet-gateway.dharitri.org'
+gateway_uri = 'https://devnet-gateway.dharitri.com'
 
 relayer_addr = "drt19azy5vlq343un82cqz03744vmta9ya8l5xwj3ywz7r8m8pkttd0setp22r"
-rewa_mex_pair_address = "drt1qqqqqqqqqqqqqpgqzw0d0tj25qme9e4ukverjjjqle6xamay0n4sflc0xk"
+rewa_moa_pair_address = "drt1qqqqqqqqqqqqqpgqzw0d0tj25qme9e4ukverjjjqle6xamay0n4sflc0xk"
 rewa_usdc_pair_address = "drt1qqqqqqqqqqqqqpgqtqfhy99su9xzjjrq59kpzpp25udtc9eq0n4s7ec79y"
 wrewa_address = "drt1qqqqqqqqqqqqqpgqpv09kfzry5y4sj05udcngesat07umyj70n4sqk0vql"
 router_address = "drt1qqqqqqqqqqqqqpgqa7hv0nahgsl8tz0psat46x0tchm0wuyc0n4s8uay7n"

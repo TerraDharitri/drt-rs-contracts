@@ -1,6 +1,6 @@
 ALICE="./interaction/alice.pem"
 PROJECT="${PWD}"
-PROXY=https://devnet-gateway.dharitri.org
+PROXY=https://devnet-gateway.dharitri.com
 CHAINID=D
 
 BOB="${USERS}/bob.pem"
