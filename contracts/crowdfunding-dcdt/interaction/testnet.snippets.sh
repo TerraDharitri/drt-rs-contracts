@@ -3,7 +3,7 @@ BOB="${USERS}/bob.pem"
 
 ADDRESS=$(drtpy data load --key=address-testnet)
 DEPLOY_TRANSACTION=$(drtpy data load --key=deployTransaction-testnet)
-PROXY=https://testnet-api.dharitri.org
+PROXY=https://testnet-api.dharitri.com
 
 DEPLOY_GAS="80000000"
 TARGET=10

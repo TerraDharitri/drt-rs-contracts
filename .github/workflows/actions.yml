@@ -13,10 +13,9 @@ permissions:
 jobs:
   contracts:
     name: Contracts
-    uses: TerraDharitri/drt-sc-actions/.github/workflows/contracts.yml@v0.0.1
+    uses: TerraDharitri/drt-sc-actions/.github/workflows/contracts.yml@v0.1.17
     with:
       rust-toolchain: stable
       enable-contracts-size-report: true
-      enable-interactor-tests: true
     secrets:
       token: ${{ secrets.GITHUB_TOKEN }}

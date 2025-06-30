@@ -9,23 +9,23 @@
 
 use dharitri_sc::proxy_imports::*;
 
-pub struct MvxGameScProxy;
+pub struct DrtGameScProxy;
 
-impl<Env, From, To, Gas> TxProxyTrait<Env, From, To, Gas> for MvxGameScProxy
+impl<Env, From, To, Gas> TxProxyTrait<Env, From, To, Gas> for DrtGameScProxy
 where
     Env: TxEnv,
     From: TxFrom<Env>,
     To: TxTo<Env>,
     Gas: TxGas<Env>,
 {
-    type TxProxyMethods = MvxGameScProxyMethods<Env, From, To, Gas>;
+    type TxProxyMethods = DrtGameScProxyMethods<Env, From, To, Gas>;
 
     fn proxy_methods(self, tx: Tx<Env, From, To, (), Gas, (), ()>) -> Self::TxProxyMethods {
-        MvxGameScProxyMethods { wrapped_tx: tx }
+        DrtGameScProxyMethods { wrapped_tx: tx }
     }
 }
 
-pub struct MvxGameScProxyMethods<Env, From, To, Gas>
+pub struct DrtGameScProxyMethods<Env, From, To, Gas>
 where
     Env: TxEnv,
     From: TxFrom<Env>,
@@ -36,7 +36,7 @@ where
 }
 
 #[rustfmt::skip]
-impl<Env, From, Gas> MvxGameScProxyMethods<Env, From, (), Gas>
+impl<Env, From, Gas> DrtGameScProxyMethods<Env, From, (), Gas>
 where
     Env: TxEnv,
     Env::Api: VMApi,
@@ -64,7 +64,7 @@ where
 }
 
 #[rustfmt::skip]
-impl<Env, From, To, Gas> MvxGameScProxyMethods<Env, From, To, Gas>
+impl<Env, From, To, Gas> DrtGameScProxyMethods<Env, From, To, Gas>
 where
     Env: TxEnv,
     Env::Api: VMApi,

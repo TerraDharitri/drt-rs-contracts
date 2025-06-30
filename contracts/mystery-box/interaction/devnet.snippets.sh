@@ -1,5 +1,5 @@
 WALLET_PEM="~/walletKey.pem"
-PROXY="https://devnet-gateway.dharitri.org"
+PROXY="https://devnet-gateway.dharitri.com"
 CHAIN_ID="D"
 
 MB_WASM_PATH="~/drt-rs-contracts/contracts/mystery-box/output/mystery-box.drtsc.json"

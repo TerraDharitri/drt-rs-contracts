@@ -1,11 +1,11 @@
 [package]
 name = "random"
 version = "0.0.0"
-authors = ["contact@dharitri.org"]
+authors = ["dorin-iancu <dorin.iancu@dharitri.com>"]
 edition = "2021"
 
 [lib]
 path = "src/lib.rs"
 
 [dependencies.dharitri-sc]
-version = "1.0.1"
+version = "1.16.0"

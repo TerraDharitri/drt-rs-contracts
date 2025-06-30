@@ -1,6 +1,6 @@
 # Abstract
 
-The lottery smart contract is designed to allow anyone to create their very own lottery, directly on the blockchain. Having said that, the purpose of this contract is just to have a bit of fun and show what’s possible on the current version of the Dharitri blockchain. We do not endorse gambling. 
+The lottery smart contract is designed to allow anyone to create their very own lottery, directly on the blockchain. Having said that, the purpose of this contract is just to have a bit of fun and show what’s possible on the current version of the dharitrI blockchain. We do not endorse gambling. 
 
 This is the dcdt version, which allows any arbitrary token to be used as currency.
 

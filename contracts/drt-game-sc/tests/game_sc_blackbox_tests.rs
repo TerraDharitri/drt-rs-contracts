@@ -81,7 +81,7 @@ impl GameContractState {
         self.world
             .tx()
             .from(OWNER_ADDR)
-            .typed(game_proxy::MvxGameScProxy)
+            .typed(game_proxy::DrtGameScProxy)
             .init(
                 OptionalValue::Some(true),
                 OptionalValue::Some(BigUint::from(STARTING_FEE)),
@@ -107,7 +107,7 @@ impl GameContractState {
             .tx()
             .from(caller)
             .to(GAME_SC_ADDR)
-            .typed(game_proxy::MvxGameScProxy)
+            .typed(game_proxy::DrtGameScProxy)
             .create_game(
                 waiting_time,
                 number_of_players_min,
@@ -134,7 +134,7 @@ impl GameContractState {
                     .tx()
                     .from(caller)
                     .to(GAME_SC_ADDR)
-                    .typed(game_proxy::MvxGameScProxy)
+                    .typed(game_proxy::DrtGameScProxy)
                     .join_game(game_id)
                     .dcdt(TestDcdtTransfer(TOKEN_GAME, 0, amount))
                     .with_result(ExpectError(val.0, val.1))
@@ -145,7 +145,7 @@ impl GameContractState {
                     .tx()
                     .from(caller)
                     .to(GAME_SC_ADDR)
-                    .typed(game_proxy::MvxGameScProxy)
+                    .typed(game_proxy::DrtGameScProxy)
                     .join_game(game_id)
                     .dcdt(TestDcdtTransfer(TOKEN_GAME, 0, amount))
                     .run();
@@ -167,7 +167,7 @@ impl GameContractState {
                     .tx()
                     .from(caller)
                     .to(GAME_SC_ADDR)
-                    .typed(game_proxy::MvxGameScProxy)
+                    .typed(game_proxy::DrtGameScProxy)
                     .claim_back_wager(game_id)
                     .with_result(ExpectError(val.0, val.1))
                     .run();
@@ -177,7 +177,7 @@ impl GameContractState {
                     .tx()
                     .from(caller)
                     .to(GAME_SC_ADDR)
-                    .typed(game_proxy::MvxGameScProxy)
+                    .typed(game_proxy::DrtGameScProxy)
                     .claim_back_wager(game_id)
                     .run();
             }
@@ -198,7 +198,7 @@ impl GameContractState {
                     .tx()
                     .from(OWNER_ADDR)
                     .to(GAME_SC_ADDR)
-                    .typed(game_proxy::MvxGameScProxy)
+                    .typed(game_proxy::DrtGameScProxy)
                     .send_reward(game_id, winners)
                     .with_result(ExpectError(val.0, val.1))
                     .run();
@@ -208,7 +208,7 @@ impl GameContractState {
                     .tx()
                     .from(OWNER_ADDR)
                     .to(GAME_SC_ADDR)
-                    .typed(game_proxy::MvxGameScProxy)
+                    .typed(game_proxy::DrtGameScProxy)
                     .send_reward(game_id, winners)
                     .run();
             }
@@ -242,7 +242,7 @@ fn game_sc_simple_game_flow() {
         .world
         .query()
         .to(GAME_SC_ADDR)
-        .typed(game_proxy::MvxGameScProxy)
+        .typed(game_proxy::DrtGameScProxy)
         .last_game_id()
         .run();
 
@@ -261,7 +261,7 @@ fn game_sc_simple_game_flow() {
         .world
         .query()
         .to(GAME_SC_ADDR)
-        .typed(game_proxy::MvxGameScProxy)
+        .typed(game_proxy::DrtGameScProxy)
         .last_game_id()
         .with_result(ExpectValue(1u64))
         .run();
@@ -275,7 +275,7 @@ fn game_sc_simple_game_flow() {
         .tx()
         .from(USER1_ADDR)
         .to(GAME_SC_ADDR)
-        .typed(game_proxy::MvxGameScProxy)
+        .typed(game_proxy::DrtGameScProxy)
         .game_settings(1u64)
         .returns(ReturnsResultUnmanaged)
         .run();
@@ -291,7 +291,7 @@ fn game_sc_simple_game_flow() {
         .tx()
         .from(USER2_ADDR)
         .to(GAME_SC_ADDR)
-        .typed(game_proxy::MvxGameScProxy)
+        .typed(game_proxy::DrtGameScProxy)
         .players(1u64)
         .returns(ReturnsResultUnmanaged)
         .run();
@@ -306,7 +306,7 @@ fn game_sc_simple_game_flow() {
         .tx()
         .from(USER2_ADDR)
         .to(GAME_SC_ADDR)
-        .typed(game_proxy::MvxGameScProxy)
+        .typed(game_proxy::DrtGameScProxy)
         .games_per_user(USER1_ADDR)
         .returns(ReturnsResultUnmanaged)
         .run();
@@ -317,7 +317,7 @@ fn game_sc_simple_game_flow() {
         .tx()
         .from(USER2_ADDR)
         .to(GAME_SC_ADDR)
-        .typed(game_proxy::MvxGameScProxy)
+        .typed(game_proxy::DrtGameScProxy)
         .games_per_user(USER2_ADDR)
         .returns(ReturnsResultUnmanaged)
         .run();
@@ -361,7 +361,7 @@ fn game_sc_complex_flow() {
         .tx()
         .from(USER1_ADDR)
         .to(GAME_SC_ADDR)
-        .typed(game_proxy::MvxGameScProxy)
+        .typed(game_proxy::DrtGameScProxy)
         .game_settings(1u64)
         .returns(ReturnsResultUnmanaged)
         .run();
@@ -393,7 +393,7 @@ fn game_sc_complex_flow() {
         .tx()
         .from(USER1_ADDR)
         .to(GAME_SC_ADDR)
-        .typed(game_proxy::MvxGameScProxy)
+        .typed(game_proxy::DrtGameScProxy)
         .game_settings(1u64)
         .returns(ReturnsResult)
         .run();
@@ -454,7 +454,7 @@ fn game_sc_complex_flow() {
         .tx()
         .from(OWNER_ADDR)
         .to(GAME_SC_ADDR)
-        .typed(game_proxy::MvxGameScProxy)
+        .typed(game_proxy::DrtGameScProxy)
         .set_admin(OWNER_ADDR)
         .run();
 
@@ -513,7 +513,7 @@ fn invalid_game_test() {
         .tx()
         .from(USER1_ADDR)
         .to(GAME_SC_ADDR)
-        .typed(game_proxy::MvxGameScProxy)
+        .typed(game_proxy::DrtGameScProxy)
         .game_settings(1u64)
         .returns(ReturnsResult)
         .run();
@@ -529,7 +529,7 @@ fn invalid_game_test() {
         .tx()
         .from(OWNER_ADDR)
         .to(GAME_SC_ADDR)
-        .typed(game_proxy::MvxGameScProxy)
+        .typed(game_proxy::DrtGameScProxy)
         .set_admin(OWNER_ADDR)
         .run();
 

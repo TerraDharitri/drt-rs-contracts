@@ -1,7 +1,7 @@
 ALICE="${USERS}/alice.pem"
 ADDRESS=$(drtpy data load --key=address-testnet)
 DEPLOY_TRANSACTION=$(drtpy data load --key=deployTransaction-testnet)
-PROXY=https://testnet-api.dharitri.org
+PROXY=https://testnet-api.dharitri.com
 
 deploy() {
     drtpy contract deploy --bytecode=${PROJECT} --recall-nonce --pem=${ALICE} --gas-limit=50000000 --arguments 0 --send --outfile="deploy-testnet.interaction.json" --proxy=${PROXY} --chain=T || return

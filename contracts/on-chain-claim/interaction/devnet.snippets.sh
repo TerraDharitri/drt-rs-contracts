@@ -1,6 +1,6 @@
 WALLET="${PWD}/wallet.pem"
 PROJECT="${PWD}"
-PROXY=https://devnet-gateway.dharitri.org
+PROXY=https://devnet-gateway.dharitri.com
 CHAINID=D
 
 DEPLOY_GAS="25000000"

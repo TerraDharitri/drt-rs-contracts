@@ -1,4 +1,4 @@
 chain_type = 'real'
-gateway_uri = 'https://devnet-gateway.dharitri.org'
+gateway_uri = 'https://devnet-gateway.dharitri.com'
 quorum = 2
 wrewa_address = "drt1qqqqqqqqqqqqqpgqqkwzsxkjc83vlfex9dmznwm7tjvxlqqkpauqmnyay5"

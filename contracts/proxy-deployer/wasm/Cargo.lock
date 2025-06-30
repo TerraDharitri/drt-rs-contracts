@@ -22,9 +22,9 @@ checksum = "b048fb63fd8b5923fc5aa7b340d8e156aec7ec02f0c78fa8a6ddc2613f6f71de"
 
 [[package]]
 name = "dharitri-chain-core"
-version = "1.0.1"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4f7e914b76c699e352a9293ae0466e2a2fe9d15218082dc16aca3be02a5a99b"
+checksum = "dc631c4aa79a9380c668a4f2ec50166ce536091a685a94d0390868e185e4a431"
 dependencies = [
  "bitflags",
  "dharitri-sc-codec",
@@ -32,9 +32,9 @@ dependencies = [
 
 [[package]]
 name = "dharitri-sc"
-version = "1.0.1"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fb08f0c0fe90dfb235b0e2ed0679db7e92bba6438193df09cf1f9b0885fa15c"
+checksum = "586f02ce43d7ff8db34e359f8901d36df19f8558b7974847351a23c2439c9fa8"
 dependencies = [
  "bitflags",
  "dharitri-chain-core",
@@ -47,9 +47,9 @@ dependencies = [
 
 [[package]]
 name = "dharitri-sc-codec"
-version = "1.0.1"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c4e2bfdd1f3e7d5156cc284daac3970aa4ba467ae0626d59dd769f304df4f177"
+checksum = "1b5ee1027660448e124c27156953e364ae6941f60bd74584bb32441fd92c015b"
 dependencies = [
  "arrayvec",
  "dharitri-sc-codec-derive",
@@ -58,9 +58,9 @@ dependencies = [
 
 [[package]]
 name = "dharitri-sc-codec-derive"
-version = "1.0.1"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdf28fd22fdd4a46bef814b8ed20d0f7b6914110b9b5fcfd7da5763fbafa2a1a"
+checksum = "4367139f38a2bb82b62ee40aac68cd895bc1a294c2f2ba44a4a0513bc563b0e3"
 dependencies = [
  "hex",
  "proc-macro2",
@@ -70,9 +70,9 @@ dependencies = [
 
 [[package]]
 name = "dharitri-sc-derive"
-version = "1.0.1"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e53837548aa8f7cb3a64b5e9e40d038bb879ac31d4d7dd98601a97fef2ef9dc"
+checksum = "c8098fc2dedc77637885e4e90081f02cfa19ff678bd337bc8f12c5f1bcb3f432"
 dependencies = [
  "hex",
  "proc-macro2",
@@ -83,18 +83,18 @@ dependencies = [
 
 [[package]]
 name = "dharitri-sc-modules"
-version = "1.0.1"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43e2c69c8ec91e84dbea7b61a36f745ee453ca3a6dc5b2c7e83004ad0b903cd8"
+checksum = "c57d89b553811cc6fd15db280b576b2d0497ab88d1306f9bc9e1281b48659000"
 dependencies = [
  "dharitri-sc",
 ]
 
 [[package]]
 name = "dharitri-sc-wasm-adapter"
-version = "1.0.1"
+version = "1.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "634cabce29f530e5ce6be5a3ed744deb99ddf7a729319f749cbdc27202835f38"
+checksum = "c940283832b7a9c86538b69874bf524e57966e741efa038cb6c15c896415f78b"
 dependencies = [
  "dharitri-sc",
 ]
@@ -198,9 +198,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-ident"
-version = "1.0.16"
+version = "1.0.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a210d160f08b701c8721ba1c726c11662f877ea6b7094007e1ca9a1041945034"
+checksum = "e91b56cd4cadaeb79bbf1a5645f6b4f8dc5bde8834ad5894a8db35fda9efa1fe"
 
 [[package]]
 name = "unwrap-infallible"

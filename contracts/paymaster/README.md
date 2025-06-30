@@ -2,7 +2,7 @@
 
 ## Overview
 
-**Definition of problem**: the user needs to have a gas token (rEWA in case of Dharitri) to be able to do anything on the blockchain.
+**Definition of problem**: the user needs to have a gas token (rEWA in case of dharitrI) to be able to do anything on the blockchain.
 This is a hard concept to explain to non-crypto users.
 Also gives some headaches for crypto users as well for the first steps of onboarding.
 Imagine those people who bridge their NFTs or those who bridge USDC to a new account.

@@ -17,7 +17,7 @@ const ONE_UNIT: u64 = 1_000_000_000_000_000_000;
 const ONE_MILLION: u64 = 1_000_000;
 
 pub static WREWA_TOKEN_ID: &[u8] = b"WREWA-a28c59";
-pub static MEX_TOKEN_ID: &[u8] = b"MEX-a659d0";
+pub static MOA_TOKEN_ID: &[u8] = b"MOA-a659d0";
 pub static ONE_TOKEN_ID: &[u8] = b"ONE-83a7c0";
 pub static USDC_TOKEN_ID: &[u8] = b"USDC-350c4e";
 pub static UTK_TOKEN_ID: &[u8] = b"UTK-14d57d";
@@ -137,7 +137,7 @@ impl ContractInteract {
 
         let relayer_addr = &self.config.relayer_addr;
 
-        let dest = &self.config.rewa_mex_pair_address;
+        let dest = &self.config.rewa_moa_pair_address;
         let endpoint_name = ManagedBuffer::new_from_bytes(SWAP_TOKENS_FIXED_INPUT_FUNC_NAME);
         let endpoint_args = MultiValueVec::from(vec![
             ManagedBuffer::new_from_bytes(WREWA_TOKEN_ID),
@@ -151,9 +151,9 @@ impl ContractInteract {
             BigUint::<StaticApi>::from(ONE_UNIT / 100), // 0.01 WREWA
         ));
         payments.push(DcdtTokenPayment::new(
-            TokenIdentifier::from(MEX_TOKEN_ID),
+            TokenIdentifier::from(MOA_TOKEN_ID),
             token_nonce,
-            token_amount, // 1_000_000 MEX
+            token_amount, // 1_000_000 MOA
         ));
 
         let response = self

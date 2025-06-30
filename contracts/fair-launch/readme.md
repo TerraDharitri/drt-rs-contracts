@@ -4,7 +4,7 @@ Problem statement: new economics needs special new models and rules for token an
 
 With DCDT standard complex economics can be developed using the transferRole, as you can create tokens which are forced to go through a special contract in order for the transfer/any execution to go through.
 
-Resolve: create a new transferSC1.0 standard and a template, which can be used by any project who wants special roles for its tokens. We can see a complicated version of this on the xMEX and the proxy-dex contract for xMEX. Using that knowledge, we can create a templated version for the transferSC1.0.
+Resolve: create a new transferSC1.0 standard and a template, which can be used by any project who wants special roles for its tokens. We can see a complicated version of this on the xMOA and the proxy-dex contract for xMOA. Using that knowledge, we can create a templated version for the transferSC1.0.
 
 1. Transferring tokens from user to user: forwardTransfer@destination@extraArgs
 The complete txData: MutliDCDTNFTTransfer@transferContract@List<tokenID@nonce@value>@ forwardTransfer@destination@extraArguments
@@ -32,7 +32,7 @@ Selling the new token - 10% fee - which will remain in this transferSC1.0.
 
 3. Fair launches
 For the initial launch of the tokens, we may create a new endpoint. When fairlaunch is active, the forwardExecuteOnDest and forwardAsyncCall can be stopped.
-At one point we have in the xExchange liquidity pool contracts a module for protected launches. In which we set a limit of how much one user can buy. Also we had a decreasing FEE model on swapping for the first 24 hours. This could have a better place in this contract. 
+At one point we have in the  liquidity pool contracts a module for protected launches. In which we set a limit of how much one user can buy. Also we had a decreasing FEE model on swapping for the first 24 hours. This could have a better place in this contract. 
 Features: 
 1. limit of how much one account can buy.
 2. Limit how much one transaction can buy 
@@ -41,4 +41,4 @@ Features:
 
 When there is a fair launch, in that period LP tokens will be completely burnt if someone calls exitLP. The liquidity remains in the Liquidity pool contract, and the LP token is burnt for the user who sent it.
 
-You can read more here: https://agora.dharitri.org/t/transferrole-and-composability-transfercontract-mip-4/171
+You can read more here: https://agora.dharitri.com/t/transferrole-and-composability-transfercontract-mip-4/171

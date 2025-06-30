@@ -9,7 +9,7 @@ pub mod storage;
 pub mod types;
 
 #[dharitri_sc::contract]
-pub trait MvxGameSc: storage::StorageModule + owner::OwnerModule + private::PrivateModule {
+pub trait DrtGameSc: storage::StorageModule + owner::OwnerModule + private::PrivateModule {
     #[allow_multiple_var_args]
     #[init]
     fn init(

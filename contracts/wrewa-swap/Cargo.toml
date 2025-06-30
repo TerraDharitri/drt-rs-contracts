@@ -1,13 +1,16 @@
 [package]
 name = "dharitri-sc-wrewa-swap"
-version = "1.0.1"
-authors = ["contact@dharitri.org"]
+version = "0.47.1"
+authors = [
+    "Dorin Iancu <dorin.iancu@dharitri.com>",
+    "dharitrI <contact@dharitri.com>",
+]
 license = "GPL-3.0-only"
 readme = "README.md"
-repository = "https://github.com/TerraDharitri/drt-rs-sdk"
-homepage = "https://dharitri.org/"
-documentation = "https://docs.dharitri.org/"
-description = "Dharitri Wrapped REWA Smart Contract"
+repository = "https://github.com/dharitri/drt-rs-sdk"
+homepage = "https://dharitri.com/"
+documentation = "https://docs.dharitri.com/"
+description = "dharitrI Wrapped REWA Smart Contract"
 keywords = [
     "dharitri",
     "wasm",
@@ -26,10 +29,10 @@ edition = "2021"
 path = "src/wrewa.rs"
 
 [dependencies.dharitri-sc]
-version = "1.0.1"
+version = "1.16.0"
 
 [dependencies.dharitri-sc-modules]
-version = "1.0.1"
+version = "1.16.0"
 
 [dev-dependencies.dharitri-sc-scenario]
-version = "1.0.1"
+version = "1.16.0"
