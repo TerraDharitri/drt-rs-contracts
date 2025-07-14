@@ -14,7 +14,7 @@ pub trait TokenInfoModule:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        let payment_amount = self.call_value().rewa().clone();
+        let payment_amount = self.call_value().rewa_value().clone_value();
         match token_type {
             DcdtTokenType::Fungible => {
                 self.fungible_token().issue_and_set_all_roles(

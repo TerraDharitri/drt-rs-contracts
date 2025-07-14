@@ -13,7 +13,7 @@ pub trait CryptoBubbles {
     #[payable("REWA")]
     #[endpoint(topUp)]
     fn top_up(&self) {
-        let payment = self.call_value().rewa();
+        let payment = self.call_value().rewa_value();
         let caller = self.blockchain().get_caller();
         self.player_balance(&caller)
             .update(|balance| *balance += &*payment);
@@ -63,7 +63,7 @@ pub trait CryptoBubbles {
     #[payable("REWA")]
     #[endpoint(joinGame)]
     fn join_game(&self, game_index: BigUint) {
-        let bet = self.call_value().rewa();
+        let bet = self.call_value().rewa_value();
         let player = self.blockchain().get_caller();
         self.top_up();
         self.add_player_to_game_state_change(&game_index, &player, &bet)

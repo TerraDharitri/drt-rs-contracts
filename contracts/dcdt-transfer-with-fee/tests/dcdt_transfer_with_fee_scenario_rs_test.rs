@@ -3,7 +3,6 @@ use dharitri_sc_scenario::*;
 fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new();
 
-    blockchain.set_current_dir_from_workspace("contracts/dcdt-transfer-with-fee");
     blockchain.register_contract(
         "drtsc:output/dcdt-transfer-with-fee.drtsc.json",
         dcdt_transfer_with_fee::ContractBuilder,

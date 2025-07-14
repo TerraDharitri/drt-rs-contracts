@@ -44,12 +44,11 @@ pub trait DcdtTransferWithFee {
         self.tx().to(ToCaller).payment(&fees).transfer();
     }
 
-    #[payable]
+    #[payable("*")]
     #[endpoint]
     fn transfer(&self, address: ManagedAddress) {
-        // TODO: switch to rewa+dcdt multi transfer handling
         require!(
-            *self.call_value().rewa_direct_non_strict() == 0,
+            *self.call_value().rewa_value() == 0,
             "REWA transfers not allowed"
         );
         let payments = self.call_value().all_dcdt_transfers();
@@ -73,13 +72,13 @@ pub trait DcdtTransferWithFee {
                         "Mismatching payment for covering fees"
                     );
                     let _ = self.get_payment_after_fees(fee_type, &next_payment);
-                    new_payments.push(payment.clone());
+                    new_payments.push(payment);
                 }
                 Fee::Percentage(_) => {
                     new_payments.push(self.get_payment_after_fees(fee_type, &payment));
                 }
                 Fee::Unset => {
-                    new_payments.push(payment.clone());
+                    new_payments.push(payment);
                 }
             }
         }

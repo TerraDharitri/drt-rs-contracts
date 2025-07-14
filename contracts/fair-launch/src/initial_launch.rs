@@ -29,7 +29,7 @@ pub trait InitialLaunchModule:
     + dharitri_sc_modules::default_issue_callbacks::DefaultIssueCallbacksModule
     + dharitri_sc_modules::pause::PauseModule
 {
-    #[payable]
+    #[payable("*")]
     #[endpoint(buyToken)]
     fn buy_token(
         &self,
@@ -52,7 +52,7 @@ pub trait InitialLaunchModule:
         );
         let take_fee_result = self.take_fees(
             caller,
-            ManagedVec::from_single_item(payment.clone()),
+            ManagedVec::from_single_item(payment),
             ManagedVec::from_single_item(fee_percentage),
         );
         require!(
@@ -94,13 +94,13 @@ pub trait InitialLaunchModule:
 
         self.tx()
             .to(&take_fee_result.original_caller)
-            .payment(received_tokens.clone())
+            .payment(&received_tokens)
             .transfer();
 
-        received_tokens.clone()
+        received_tokens
     }
 
-    #[payable]
+    #[payable("*")]
     #[endpoint(sellToken)]
     fn sell_token(
         &self,
@@ -124,7 +124,7 @@ pub trait InitialLaunchModule:
         );
         let take_fee_result = self.take_fees(
             caller,
-            ManagedVec::from_single_item(payment.clone()),
+            ManagedVec::from_single_item(payment),
             ManagedVec::from_single_item(fee_percentage),
         );
         require!(
@@ -151,10 +151,10 @@ pub trait InitialLaunchModule:
 
         self.tx()
             .to(&take_fee_result.original_caller)
-            .payment(received_tokens.clone())
+            .payment(&received_tokens)
             .transfer();
 
-        received_tokens.clone()
+        received_tokens
     }
 
     fn get_fee_percentage(

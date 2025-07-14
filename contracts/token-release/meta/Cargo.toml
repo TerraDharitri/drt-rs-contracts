@@ -10,5 +10,5 @@ publish = false
 path = ".."
 
 [dependencies.dharitri-sc-meta-lib]
-version = "1.16.0"
+version = "1.13.6"
 default-features = false

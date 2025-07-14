@@ -13,7 +13,7 @@ pub trait TokenModule:
         token_ticker: ManagedBuffer,
         num_decimals: usize,
     ) {
-        let payment_amount = self.call_value().rewa().clone();
+        let payment_amount = self.call_value().rewa_value().clone_value();
         self.token().issue_and_set_all_roles(
             payment_amount,
             token_display_name,

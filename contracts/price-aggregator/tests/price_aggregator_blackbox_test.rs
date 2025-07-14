@@ -1,6 +1,6 @@
 use dharitri_sc_price_aggregator::{
     price_aggregator_data::{OracleStatus, TimestampedPrice, TokenPair},
-    PriceAggregator, MAX_ROUND_DURATION_SECONDS,
+    ContractObj, PriceAggregator, MAX_ROUND_DURATION_SECONDS,
 };
 
 use dharitri_sc_scenario::imports::*;
@@ -8,23 +8,22 @@ use dharitri_sc_scenario::imports::*;
 mod price_aggregator_proxy;
 
 const DECIMALS: u8 = 0;
-const REWA_TICKER: TestTokenIdentifier = TestTokenIdentifier::new("REWA");
+const REWA_TICKER: &[u8] = b"REWA";
 const NR_ORACLES: usize = 4;
 const SLASH_AMOUNT: u64 = 10;
 const SLASH_QUORUM: usize = 3;
 const STAKE_AMOUNT: u64 = 20;
 const SUBMISSION_COUNT: usize = 3;
-const USD_TICKER: TestTokenIdentifier = TestTokenIdentifier::new("USDC");
+const USD_TICKER: &[u8] = b"USDC";
 
 const PRICE_AGGREGATOR_ADDRESS: TestSCAddress = TestSCAddress::new("price-aggregator");
 const OWNER_ADDRESS: TestAddress = TestAddress::new("owner");
 const PRICE_AGGREGATOR_PATH: DrtscPath =
-    DrtscPath::new("output/dharitri-sc-price-aggregator.drtsc.json");
+    DrtscPath::new("output/terradharitri-price-aggregator-sc.drtsc.json");
 
 fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new();
 
-    blockchain.set_current_dir_from_workspace("contracts/price-aggregator");
     blockchain.register_contract(
         PRICE_AGGREGATOR_PATH,
         dharitri_sc_price_aggregator::ContractBuilder,
@@ -36,6 +35,7 @@ fn world() -> ScenarioWorld {
 struct PriceAggregatorTestState {
     world: ScenarioWorld,
     oracles: Vec<AddressValue>,
+    price_aggregator_whitebox: WhiteboxContract<ContractObj<DebugApi>>,
 }
 
 impl PriceAggregatorTestState {
@@ -57,7 +57,16 @@ impl PriceAggregatorTestState {
             oracles.push(address_value);
         }
 
-        Self { world, oracles }
+        let price_aggregator_whitebox = WhiteboxContract::new(
+            PRICE_AGGREGATOR_ADDRESS,
+            dharitri_sc_price_aggregator::contract_obj,
+        );
+
+        Self {
+            world,
+            oracles,
+            price_aggregator_whitebox,
+        }
     }
 
     fn deploy(&mut self) -> &mut Self {
@@ -103,7 +112,7 @@ impl PriceAggregatorTestState {
             .from(OWNER_ADDRESS)
             .to(PRICE_AGGREGATOR_ADDRESS)
             .typed(price_aggregator_proxy::PriceAggregatorProxy)
-            .set_pair_decimals(REWA_TICKER.as_bytes(), USD_TICKER.as_bytes(), DECIMALS)
+            .set_pair_decimals(REWA_TICKER, USD_TICKER, DECIMALS)
             .run();
     }
 
@@ -117,16 +126,6 @@ impl PriceAggregatorTestState {
             .run();
     }
 
-    fn pause_endpoint(&mut self) {
-        self.world
-            .tx()
-            .from(OWNER_ADDRESS)
-            .to(PRICE_AGGREGATOR_ADDRESS)
-            .typed(price_aggregator_proxy::PriceAggregatorProxy)
-            .pause_endpoint()
-            .run();
-    }
-
     fn submit(&mut self, from: &AddressValue, submission_timestamp: u64, price: u64) {
         self.world
             .tx()
@@ -134,8 +133,8 @@ impl PriceAggregatorTestState {
             .to(PRICE_AGGREGATOR_ADDRESS)
             .typed(price_aggregator_proxy::PriceAggregatorProxy)
             .submit(
-                REWA_TICKER.as_str(),
-                USD_TICKER.as_str(),
+                REWA_TICKER,
+                USD_TICKER,
                 submission_timestamp,
                 price,
                 DECIMALS,
@@ -156,8 +155,8 @@ impl PriceAggregatorTestState {
             .to(PRICE_AGGREGATOR_ADDRESS)
             .typed(price_aggregator_proxy::PriceAggregatorProxy)
             .submit(
-                REWA_TICKER.as_str(),
-                USD_TICKER.as_str(),
+                REWA_TICKER,
+                USD_TICKER,
                 submission_timestamp,
                 price,
                 DECIMALS,
@@ -204,12 +203,12 @@ fn test_price_aggregator_submit() {
     state.submit(&state.oracles[0].clone(), 95, 100);
 
     let current_timestamp = 100;
-    state.world.query().to(PRICE_AGGREGATOR_ADDRESS).whitebox(
-        dharitri_sc_price_aggregator::contract_obj,
-        |sc| {
+    state
+        .world
+        .whitebox_query(&state.price_aggregator_whitebox, |sc| {
             let token_pair = TokenPair {
-                from: ManagedBuffer::from(REWA_TICKER.as_str()),
-                to: ManagedBuffer::from(USD_TICKER.as_str()),
+                from: managed_buffer!(REWA_TICKER),
+                to: managed_buffer!(USD_TICKER),
             };
             assert_eq!(
                 sc.first_submission_timestamp(&token_pair).get(),
@@ -224,40 +223,38 @@ fn test_price_aggregator_submit() {
             assert_eq!(submissions.len(), 1);
             assert_eq!(
                 submissions
-                    .get(&ManagedAddress::from(&state.oracles[0].to_address()))
+                    .get(&managed_address!(&state.oracles[0].to_address()))
                     .unwrap(),
                 managed_biguint!(100)
             );
 
             assert_eq!(
                 sc.oracle_status()
-                    .get(&ManagedAddress::from(&state.oracles[0].to_address()))
+                    .get(&managed_address!(&state.oracles[0].to_address()))
                     .unwrap(),
                 OracleStatus {
                     total_submissions: 1,
                     accepted_submissions: 1
                 }
             );
-        },
-    );
+        });
 
     // first oracle submit again - submission not accepted
     state.submit(&state.oracles[0].clone(), 95, 100);
 
-    state.world.query().to(PRICE_AGGREGATOR_ADDRESS).whitebox(
-        dharitri_sc_price_aggregator::contract_obj,
-        |sc| {
+    state
+        .world
+        .whitebox_query(&state.price_aggregator_whitebox, |sc| {
             assert_eq!(
                 sc.oracle_status()
-                    .get(&ManagedAddress::from(&state.oracles[0].to_address()))
+                    .get(&managed_address!(&state.oracles[0].to_address()))
                     .unwrap(),
                 OracleStatus {
                     total_submissions: 2,
                     accepted_submissions: 1
                 }
-            )
-        },
-    );
+            );
+        });
 }
 
 #[test]
@@ -286,18 +283,16 @@ fn test_price_aggregator_submit_round_ok() {
     // submit third
     state.submit(&state.oracles[2].clone(), 105, 12_000);
 
-    state.world.query().to(PRICE_AGGREGATOR_ADDRESS).whitebox(
-        dharitri_sc_price_aggregator::contract_obj,
-        |sc| {
-            let result = sc.latest_price_feed(
-                ManagedBuffer::from(REWA_TICKER.as_str()),
-                ManagedBuffer::from(USD_TICKER.as_str()),
-            );
+    state
+        .world
+        .whitebox_query(&state.price_aggregator_whitebox, |sc| {
+            let result =
+                sc.latest_price_feed(managed_buffer!(REWA_TICKER), managed_buffer!(USD_TICKER));
 
             let (round_id, from, to, timestamp, price, decimals) = result.into_tuple();
             assert_eq!(round_id, 1);
-            assert_eq!(from, ManagedBuffer::from(REWA_TICKER.as_str()));
-            assert_eq!(to, ManagedBuffer::from(USD_TICKER.as_str()));
+            assert_eq!(from, managed_buffer!(REWA_TICKER));
+            assert_eq!(to, managed_buffer!(USD_TICKER));
             assert_eq!(timestamp, current_timestamp);
             assert_eq!(price, managed_biguint!(11_000));
             assert_eq!(decimals, DECIMALS);
@@ -317,8 +312,7 @@ fn test_price_aggregator_submit_round_ok() {
                     decimals
                 }
             );
-        },
-    );
+        });
 }
 
 #[test]
@@ -344,23 +338,22 @@ fn test_price_aggregator_discarded_round() {
     // submit second - this will discard the previous submission
     state.submit(&state.oracles[1].clone(), current_timestamp - 1, 11_000);
 
-    state.world.query().to(PRICE_AGGREGATOR_ADDRESS).whitebox(
-        dharitri_sc_price_aggregator::contract_obj,
-        |sc| {
+    state
+        .world
+        .whitebox_query(&state.price_aggregator_whitebox, |sc| {
             let token_pair = TokenPair {
-                from: ManagedBuffer::from(REWA_TICKER.as_str()),
-                to: ManagedBuffer::from(USD_TICKER.as_str()),
+                from: managed_buffer!(REWA_TICKER),
+                to: managed_buffer!(USD_TICKER),
             };
             let submissions = sc.submissions().get(&token_pair).unwrap();
             assert_eq!(submissions.len(), 1);
             assert_eq!(
                 submissions
-                    .get(&ManagedAddress::from(&state.oracles[1].to_address()))
+                    .get(&managed_address!(&state.oracles[1].to_address()))
                     .unwrap(),
                 managed_biguint!(11_000)
             );
-        },
-    );
+        });
 }
 
 #[test]
@@ -391,31 +384,4 @@ fn test_price_aggregator_slashing() {
         10_000,
         "only oracles allowed",
     );
-}
-
-#[test]
-fn test_set_decimals_pause() {
-    let mut state = PriceAggregatorTestState::new();
-    state.deploy();
-
-    state.unpause_endpoint();
-
-    // First setPair can be done if contract is unpaused
-    state.set_pair_decimals();
-
-    // Second setPair cannot be done if contract is unpaused
-    state
-        .world
-        .tx()
-        .from(OWNER_ADDRESS)
-        .to(PRICE_AGGREGATOR_ADDRESS)
-        .typed(price_aggregator_proxy::PriceAggregatorProxy)
-        .set_pair_decimals(REWA_TICKER.as_str(), USD_TICKER.as_str(), DECIMALS)
-        .returns(ExpectError(4, "Contract is not paused"))
-        .run();
-
-    state.pause_endpoint();
-
-    // setPair can be done while contract is paused
-    state.set_pair_decimals();
 }

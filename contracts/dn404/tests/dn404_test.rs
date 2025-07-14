@@ -1,92 +1,111 @@
-mod setup;
+#![allow(deprecated)]
 
-use dn404::dn404_proxy;
+pub mod dn404_setup;
+
+use dn404::available_tokens::AvailableTokensModule;
+use dn404_setup::*;
 use dharitri_sc::{
-    codec::IntoMultiValue,
-    types::{DcdtTokenPayment, MultiValueEncoded, ReturnsResultUnmanaged, TestDcdtTransfer},
+    codec::{Empty, IntoMultiValue},
+    types::{DcdtTokenPayment, MultiValueEncoded},
 };
-use dharitri_sc_scenario::{managed_biguint, rust_biguint, ScenarioTxRun};
-use setup::{
-    Dn404Setup, DN404_ADDRESS, FEE_COL, FEE_NONCE_2, FIRST_USER, FRACTAL_TOKEN_ID, NFT_TOKEN_ID,
-    PRICE_COL, PRICE_NONCE_2, SECOND_USER, USER_BALANCE,
+use dharitri_sc_scenario::{
+    managed_biguint, managed_token_id, rust_biguint, testing_framework::TxTokenTransfer,
 };
 
 #[test]
 fn setup_test() {
-    Dn404Setup::new();
+    let _ = Dn404Setup::new(dn404::contract_obj);
 }
 
 #[test]
 fn user_buy_nfts_test() {
-    let mut setup = Dn404Setup::new();
-
-    let mut tokens_to_claim = MultiValueEncoded::new();
-    for i in 5..=7 {
-        let token =
-            DcdtTokenPayment::new(NFT_TOKEN_ID.to_token_identifier(), i, managed_biguint!(1));
-        tokens_to_claim.push(token.into_multi_value());
-    }
-
+    let mut setup = Dn404Setup::new(dn404::contract_obj);
     setup
         .b_mock
-        .tx()
-        .from(SECOND_USER)
-        .to(DN404_ADDRESS)
-        .typed(dn404_proxy::Dn404Proxy)
-        .claim_basket_of_goods(tokens_to_claim)
-        .with_dcdt_transfer(TestDcdtTransfer(FRACTAL_TOKEN_ID, 0, 3 * PRICE_COL))
-        .run();
+        .execute_dcdt_transfer(
+            &setup.second_user_addr,
+            &setup.dn404_wrapper,
+            FRACTAL_TOKEN_ID,
+            0,
+            &rust_biguint!(3 * PRICE_COL),
+            |sc| {
+                let mut tokens_to_claim = MultiValueEncoded::new();
+                for i in 5..=7 {
+                    let token = DcdtTokenPayment::new(
+                        managed_token_id!(NFT_TOKEN_ID),
+                        i,
+                        managed_biguint!(1),
+                    );
+                    tokens_to_claim.push(token.into_multi_value());
+                }
 
-    let basket_of_good = setup
-        .b_mock
-        .query()
-        .to(DN404_ADDRESS)
-        .typed(dn404_proxy::Dn404Proxy)
-        .basket_of_goods()
-        .returns(ReturnsResultUnmanaged)
-        .run();
+                sc.claim_basket_of_goods(tokens_to_claim);
+                assert_eq!(sc.basket_of_goods().len(), 1);
+                assert_eq!(
+                    sc.remaining_tokens(&managed_token_id!(NFT_TOKEN_ID), 5)
+                        .get(),
+                    0
+                );
+            },
+        )
+        .assert_ok();
 
-    assert_eq!(basket_of_good.len(), 1);
-
-    let remaining_tokens = setup
-        .b_mock
-        .query()
-        .to(DN404_ADDRESS)
-        .typed(dn404_proxy::Dn404Proxy)
-        .remaining_tokens(NFT_TOKEN_ID.to_token_identifier(), 5u64)
-        .returns(ReturnsResultUnmanaged)
-        .run();
-    assert_eq!(remaining_tokens, rust_biguint!(0));
-
-    setup
-        .b_mock
-        .check_account(SECOND_USER)
-        .dcdt_balance(FRACTAL_TOKEN_ID, (USER_BALANCE) - 3 * PRICE_COL);
+    setup.b_mock.check_dcdt_balance(
+        &setup.second_user_addr,
+        FRACTAL_TOKEN_ID,
+        &(rust_biguint!(USER_BALANCE) - 3 * PRICE_COL),
+    );
+    setup.b_mock.check_nft_balance::<Empty>(
+        &setup.second_user_addr,
+        NFT_TOKEN_ID,
+        5,
+        &rust_biguint!(1),
+        None,
+    );
 }
 
 #[test]
 fn user_deposit_test() {
-    let mut setup = Dn404Setup::new();
-    let transfers = vec![
-        TestDcdtTransfer(NFT_TOKEN_ID, 1, 1),
-        TestDcdtTransfer(NFT_TOKEN_ID, 2, 1),
-        TestDcdtTransfer(NFT_TOKEN_ID, 3, 1),
-        TestDcdtTransfer(NFT_TOKEN_ID, 4, 1),
+    let mut setup = Dn404Setup::new(dn404::contract_obj);
+    let transfers = [
+        TxTokenTransfer {
+            token_identifier: NFT_TOKEN_ID.to_vec(),
+            nonce: 1,
+            value: rust_biguint!(1),
+        },
+        TxTokenTransfer {
+            token_identifier: NFT_TOKEN_ID.to_vec(),
+            nonce: 2,
+            value: rust_biguint!(1),
+        },
+        TxTokenTransfer {
+            token_identifier: NFT_TOKEN_ID.to_vec(),
+            nonce: 3,
+            value: rust_biguint!(1),
+        },
+        TxTokenTransfer {
+            token_identifier: NFT_TOKEN_ID.to_vec(),
+            nonce: 4,
+            value: rust_biguint!(1),
+        },
     ];
 
     setup
         .b_mock
-        .tx()
-        .from(FIRST_USER)
-        .to(DN404_ADDRESS)
-        .typed(dn404_proxy::Dn404Proxy)
-        .deposit_basket_of_goods()
-        .multi_dcdt(transfers)
-        .run();
+        .execute_dcdt_multi_transfer(
+            &setup.first_user_addr,
+            &setup.dn404_wrapper,
+            &transfers,
+            |sc| {
+                sc.deposit_basket_of_goods();
+            },
+        )
+        .assert_ok();
 
     let expected_user_balance = PRICE_NONCE_2 - FEE_NONCE_2 + 3 * PRICE_COL - 3 * FEE_COL;
-    setup
-        .b_mock
-        .check_account(FIRST_USER)
-        .dcdt_balance(FRACTAL_TOKEN_ID, expected_user_balance);
+    setup.b_mock.check_dcdt_balance(
+        &setup.first_user_addr,
+        FRACTAL_TOKEN_ID,
+        &rust_biguint!(expected_user_balance),
+    )
 }

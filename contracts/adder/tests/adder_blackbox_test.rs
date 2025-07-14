@@ -9,7 +9,6 @@ const CODE_PATH: DrtscPath = DrtscPath::new("output/adder.drtsc.json");
 fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new();
 
-    blockchain.set_current_dir_from_workspace("contracts/adder");
     blockchain.register_contract(CODE_PATH, adder::ContractBuilder);
     blockchain
 }

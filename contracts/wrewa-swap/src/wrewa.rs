@@ -18,7 +18,7 @@ pub trait RewaDcdtSwap: dharitri_sc_modules::pause::PauseModule {
     fn wrap_rewa(&self) -> DcdtTokenPayment<Self::Api> {
         self.require_not_paused();
 
-        let payment_amount = self.call_value().rewa();
+        let payment_amount = self.call_value().rewa_value();
         require!(*payment_amount > 0u32, "Payment must be more than 0");
 
         let wrapped_rewa_token_id = self.wrapped_rewa_token_id().get();
@@ -30,14 +30,14 @@ pub trait RewaDcdtSwap: dharitri_sc_modules::pause::PauseModule {
             .payment(DcdtTokenPayment::new(
                 wrapped_rewa_token_id.clone(),
                 0,
-                payment_amount.clone(),
+                payment_amount.clone_value(),
             ))
             .transfer();
 
-        DcdtTokenPayment::new(wrapped_rewa_token_id, 0, payment_amount.clone())
+        DcdtTokenPayment::new(wrapped_rewa_token_id, 0, payment_amount.clone_value())
     }
 
-    #[payable]
+    #[payable("*")]
     #[endpoint(unwrapRewa)]
     fn unwrap_rewa(&self) {
         self.require_not_paused();
@@ -45,10 +45,10 @@ pub trait RewaDcdtSwap: dharitri_sc_modules::pause::PauseModule {
         let (payment_token, payment_amount) = self.call_value().single_fungible_dcdt();
         let wrapped_rewa_token_id = self.wrapped_rewa_token_id().get();
 
-        require!(*payment_token == wrapped_rewa_token_id, "Wrong dcdt token");
-        require!(*payment_amount > 0u32, "Must pay more than 0 tokens!");
+        require!(payment_token == wrapped_rewa_token_id, "Wrong dcdt token");
+        require!(payment_amount > 0u32, "Must pay more than 0 tokens!");
         require!(
-            *payment_amount <= self.get_locked_rewa_balance(),
+            payment_amount <= self.get_locked_rewa_balance(),
             "Contract does not have enough funds"
         );
 

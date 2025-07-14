@@ -19,7 +19,7 @@ pub trait ZombieHelper: storage::Storage {
     #[payable("REWA")]
     #[endpoint]
     fn level_up(&self, zombie_id: usize) {
-        let payment_amount = self.call_value().rewa();
+        let payment_amount = self.call_value().rewa_value();
         let fee = self.level_up_fee().get();
         require!(*payment_amount == fee, "Payment must be must be 0.001 REWA");
         self.zombies(&zombie_id)

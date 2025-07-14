@@ -54,7 +54,6 @@ pub enum Action<M: ManagedTypeApi> {
         code_metadata: CodeMetadata,
         arguments: ManagedVec<M, ManagedBuffer<M>>,
     },
-    SendSyncCall(CallActionData<M>),
 }
 
 impl<M: ManagedTypeApi> Action<M> {

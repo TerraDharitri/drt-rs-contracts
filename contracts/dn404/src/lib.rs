@@ -3,7 +3,6 @@
 use dharitri_sc::imports::*;
 
 pub mod available_tokens;
-pub mod dn404_proxy;
 pub mod fee;
 pub mod price;
 

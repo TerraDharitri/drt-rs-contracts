@@ -3,7 +3,6 @@ use dharitri_sc_scenario::*;
 fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new();
 
-    blockchain.set_current_dir_from_workspace("contracts/crypto-kitties/kitty-ownership");
     blockchain.register_contract(
         "drtsc:../kitty-genetic-alg/output/kitty-genetic-alg.drtsc.json",
         kitty_genetic_alg::ContractBuilder,

@@ -62,6 +62,7 @@ impl MultisigInteract {
                 function_call,
             )
             .returns(ReturnsResult)
+            .prepare_async()
             .run()
             .await;
 
@@ -77,6 +78,7 @@ impl MultisigInteract {
             .typed(wrewa_proxy::RewaDcdtSwapProxy)
             .wrapped_rewa_token_id()
             .returns(ReturnsResult)
+            .prepare_async()
             .run()
             .await;
 
@@ -113,6 +115,7 @@ impl MultisigInteract {
                 normalized_data,
             )
             .returns(ReturnsResult)
+            .prepare_async()
             .run()
             .await;
 

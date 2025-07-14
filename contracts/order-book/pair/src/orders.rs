@@ -280,9 +280,9 @@ pub trait OrdersModule:
         order_type: OrderType,
     ) -> MultiValueManagedVec<Order<Self::Api>> {
         let mut orders_vec = MultiValueManagedVec::new();
-        for order in orders {
+        for order in orders.iter() {
             if order.order_type == order_type {
-                orders_vec.push(order.clone());
+                orders_vec.push(order);
             }
         }
 
@@ -351,7 +351,7 @@ pub trait OrdersModule:
     }
 
     fn execute_transfers(&self, transfers: ManagedVec<Transfer<Self::Api>>) {
-        for transfer in transfers {
+        for transfer in &transfers {
             if transfer.payment.amount > 0 {
                 self.tx()
                     .to(&transfer.to)
