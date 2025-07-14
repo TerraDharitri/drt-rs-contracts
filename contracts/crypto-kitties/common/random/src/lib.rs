@@ -1,5 +1,5 @@
 #![no_std]
-#![allow(static_mut_refs)]
+
 use dharitri_sc::{api::ManagedTypeApi, types::ManagedByteArray};
 
 const SEED_SIZE: usize = 48;
@@ -16,7 +16,7 @@ pub struct Random {
 
 // usually, types should create their own `random` instance,
 // but because standalone types can't create a random seed
-// (due to no access to blockchain functions),
+// (due to no access to blockhain functions),
 // the method will use a provided `random` instance
 pub trait Randomizeable {
     fn get_random(random: &mut Random) -> Self;

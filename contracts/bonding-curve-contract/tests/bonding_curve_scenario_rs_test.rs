@@ -2,7 +2,6 @@ use dharitri_sc_scenario::*;
 
 fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new();
-    blockchain.set_current_dir_from_workspace("contracts/bonding-curve-contract");
     blockchain.register_contract(
         "drtsc:output/bonding-curve-contract.drtsc.json",
         bonding_curve_contract::ContractBuilder,

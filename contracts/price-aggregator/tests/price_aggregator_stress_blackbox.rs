@@ -1,22 +1,22 @@
 use dharitri_sc_price_aggregator::{
     price_aggregator_data::{OracleStatus, TokenPair},
-    PriceAggregator,
+    ContractObj, PriceAggregator,
 };
 
 use dharitri_sc_scenario::imports::*;
 
 const DECIMALS: u8 = 0;
-const REWA_TICKER: TestTokenIdentifier = TestTokenIdentifier::new("REWA");
+const REWA_TICKER: &[u8] = b"REWA";
 const NR_ORACLES: usize = 50;
 const OWNER: TestAddress = TestAddress::new("owner");
 const PRICE_AGGREGATOR_ADDRESS: TestSCAddress = TestSCAddress::new("price-aggregator");
 const PRICE_AGGREGATOR_PATH: DrtscPath =
-    DrtscPath::new("../output/dharitri-sc-price-aggregator.drtsc.json");
+    DrtscPath::new("../output/terradharitri-price-aggregator-sc.drtsc.json");
 const SLASH_AMOUNT: u64 = 10;
 const SLASH_QUORUM: usize = 3;
 const STAKE_AMOUNT: u64 = 20;
 const SUBMISSION_COUNT: usize = 50;
-const USD_TICKER: TestTokenIdentifier = TestTokenIdentifier::new("USDC");
+const USD_TICKER: &[u8] = b"USDC";
 
 mod price_aggregator_proxy;
 
@@ -34,6 +34,7 @@ fn world() -> ScenarioWorld {
 struct PriceAggregatorTestState {
     world: ScenarioWorld,
     oracles: Vec<AddressValue>,
+    price_aggregator_whitebox: WhiteboxContract<ContractObj<DebugApi>>,
 }
 
 impl PriceAggregatorTestState {
@@ -59,7 +60,16 @@ impl PriceAggregatorTestState {
             oracles.push(address_value);
         }
 
-        Self { world, oracles }
+        let price_aggregator_whitebox = WhiteboxContract::new(
+            PRICE_AGGREGATOR_ADDRESS,
+            dharitri_sc_price_aggregator::contract_obj,
+        );
+
+        Self {
+            world,
+            oracles,
+            price_aggregator_whitebox,
+        }
     }
 
     fn deploy(&mut self) -> &mut Self {
@@ -107,7 +117,7 @@ impl PriceAggregatorTestState {
             .from(OWNER)
             .to(PRICE_AGGREGATOR_ADDRESS)
             .typed(price_aggregator_proxy::PriceAggregatorProxy)
-            .set_pair_decimals(REWA_TICKER.as_str(), USD_TICKER.as_str(), DECIMALS)
+            .set_pair_decimals(REWA_TICKER, USD_TICKER, DECIMALS)
             .run();
     }
 
@@ -130,8 +140,8 @@ impl PriceAggregatorTestState {
             .gas(7_000_000u64)
             .typed(price_aggregator_proxy::PriceAggregatorProxy)
             .submit(
-                REWA_TICKER.as_str(),
-                USD_TICKER.as_str(),
+                REWA_TICKER,
+                USD_TICKER,
                 submission_timestamp,
                 price,
                 DECIMALS,
@@ -160,14 +170,14 @@ fn test_price_aggregator_submit() {
     }
 
     let current_timestamp = 100;
-    state.world.query().to(PRICE_AGGREGATOR_ADDRESS).whitebox(
-        dharitri_sc_price_aggregator::contract_obj,
-        |sc| {
+    state
+        .world
+        .whitebox_query(&state.price_aggregator_whitebox, |sc| {
             let blockchain_timestamp = sc.blockchain().get_block_timestamp();
 
             let token_pair = TokenPair {
-                from: ManagedBuffer::from(REWA_TICKER.as_str()),
-                to: ManagedBuffer::from(USD_TICKER.as_str()),
+                from: managed_buffer!(REWA_TICKER),
+                to: managed_buffer!(USD_TICKER),
             };
             assert_eq!(blockchain_timestamp, current_timestamp);
 
@@ -197,8 +207,7 @@ fn test_price_aggregator_submit() {
                     }
                 );
             }
-        },
-    );
+        });
 
     // submit last that resets the round
     state.submit(

@@ -32,7 +32,7 @@ Selling the new token - 10% fee - which will remain in this transferSC1.0.
 
 3. Fair launches
 For the initial launch of the tokens, we may create a new endpoint. When fairlaunch is active, the forwardExecuteOnDest and forwardAsyncCall can be stopped.
-At one point we have in the  liquidity pool contracts a module for protected launches. In which we set a limit of how much one user can buy. Also we had a decreasing FEE model on swapping for the first 24 hours. This could have a better place in this contract. 
+At one point we have in the DHARITRIX liquidity pool contracts a module for protected launches. In which we set a limit of how much one user can buy. Also we had a decreasing FEE model on swapping for the first 24 hours. This could have a better place in this contract. 
 Features: 
 1. limit of how much one account can buy.
 2. Limit how much one transaction can buy 
@@ -41,4 +41,4 @@ Features:
 
 When there is a fair launch, in that period LP tokens will be completely burnt if someone calls exitLP. The liquidity remains in the Liquidity pool contract, and the LP token is burnt for the user who sent it.
 
-You can read more here: https://agora.dharitri.com/t/transferrole-and-composability-transfercontract-mip-4/171
+You can read more here: https://agora.dharitri.org/t/transferrole-and-composability-transfercontract-mip-4/171

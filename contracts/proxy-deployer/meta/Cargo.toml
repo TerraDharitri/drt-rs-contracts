@@ -3,7 +3,7 @@ name = "proxy-deployer-meta"
 version = "0.0.0"
 edition = "2021"
 publish = false
-authors = ["dharitrI <contact@dharitri.com>"]
+authors = ["Dharitri <contact@dharitri.org>"]
 
 [dev-dependencies]
 
@@ -11,4 +11,4 @@ authors = ["dharitrI <contact@dharitri.com>"]
 path = ".."
 
 [dependencies.dharitri-sc-meta-lib]
-version = "1.16.0"
+version = "1.13.6"

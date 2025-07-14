@@ -21,8 +21,6 @@ const DEPLOYED_CONTRACT_PATH_EXPR: DrtscPath = DrtscPath::new("../adder/output/a
 
 fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new();
-
-    blockchain.set_current_dir_from_workspace("contracts/proxy-deployer");
     blockchain.register_contract(PROXY_DEPLOYER_PATH_EXPR, proxy_deployer::ContractBuilder);
     blockchain.register_contract(DEPLOYED_CONTRACT_PATH_EXPR, adder::ContractBuilder);
 
@@ -74,7 +72,9 @@ impl ProxyDeployerTestState {
             .from(OWNER_ADDRESS_EXPR)
             .to(PROXY_DEPLOYER_ADDRESS_EXPR)
             .typed(proxy_deployer_proxy::ProxyDeployerProxy)
-            .add_template_address(TEMPLATE_CONTRACT_ADDRESS_EXPR.to_address())
+            .add_template_address(ManagedAddress::from_address(
+                &AddressValue::from(TEMPLATE_CONTRACT_ADDRESS_EXPR).to_address(),
+            ))
             .run();
 
         self
@@ -96,7 +96,7 @@ impl ProxyDeployerTestState {
             .from(user)
             .to(PROXY_DEPLOYER_ADDRESS_EXPR)
             .typed(proxy_deployer_proxy::ProxyDeployerProxy)
-            .contract_deploy(template_address.to_managed_address(), args)
+            .contract_deploy(ManagedAddress::from(template_address.eval_to_array()), args)
             .returns(ReturnsResult)
             .run();
         self.deployed_contracts.push(deploy_address.to_address());
@@ -135,7 +135,7 @@ impl ProxyDeployerTestState {
             .typed(proxy_deployer_proxy::ProxyDeployerProxy)
             .upgrade_contracts_by_template(
                 gas,
-                OptionalValue::Some(template_address.to_managed_address()),
+                OptionalValue::Some(ManagedAddress::from(template_address.eval_to_array())),
                 args,
             )
             .run();
@@ -273,7 +273,13 @@ fn proxy_deployer_check_metadata_test() {
     let mut state = ProxyDeployerTestState::new();
     state.deploy_proxy_deployer_contract();
 
-    state.check_contract_metadata(PROXY_DEPLOYER_ADDRESS_EXPR, CodeMetadata::UPGRADEABLE);
+    state.check_contract_metadata(
+        PROXY_DEPLOYER_ADDRESS_EXPR,
+        CodeMetadata::UPGRADEABLE
+            | CodeMetadata::READABLE
+            | CodeMetadata::PAYABLE
+            | CodeMetadata::PAYABLE_BY_SC,
+    );
 
     // Test contract deploy
     let mut deploy_args = MultiValueEncoded::new();
@@ -288,7 +294,13 @@ fn proxy_deployer_check_metadata_test() {
     state.check_contract_storage(DEPLOYED_CONTRACT_ADDRESS_EXPR1, 1u64);
     let contract_address = state.deployed_contracts[0].to_owned();
 
-    state.check_contract_metadata(DEPLOYED_CONTRACT_ADDRESS_EXPR1, CodeMetadata::UPGRADEABLE);
+    state.check_contract_metadata(
+        DEPLOYED_CONTRACT_ADDRESS_EXPR1,
+        CodeMetadata::UPGRADEABLE
+            | CodeMetadata::READABLE
+            | CodeMetadata::PAYABLE
+            | CodeMetadata::PAYABLE_BY_SC,
+    );
 
     // Test endpoint call
     let mut call_args = MultiValueEncoded::new();

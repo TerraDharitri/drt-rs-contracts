@@ -72,28 +72,22 @@ pub trait ValidationModule: common::CommonModule {
         let (token_id, amount) = self.call_value().single_fungible_dcdt();
         let second_token_id = self.second_token_id().get();
         require!(
-            *token_id == second_token_id,
+            token_id == second_token_id,
             "Token in and second token id should be the same"
         );
 
-        Payment {
-            token_id: token_id.clone(),
-            amount: amount.clone(),
-        }
+        Payment { token_id, amount }
     }
 
     fn require_valid_sell_payment(&self) -> Payment<Self::Api> {
         let (token_id, amount) = self.call_value().single_fungible_dcdt();
         let first_token_id = self.first_token_id().get();
         require!(
-            *token_id == first_token_id,
+            token_id == first_token_id,
             "Token in and first token id should be the same"
         );
 
-        Payment {
-            token_id: token_id.clone(),
-            amount: amount.clone(),
-        }
+        Payment { token_id, amount }
     }
 
     fn require_valid_match_input_order_ids(&self, order_ids: &ManagedVec<u64>) {

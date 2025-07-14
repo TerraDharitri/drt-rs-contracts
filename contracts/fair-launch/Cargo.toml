@@ -9,11 +9,11 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.dharitri-sc]
-version = "1.16.0"
+version = "1.13.6"
 features = ["dcdt-token-payment-legacy-decode"]
 
 [dependencies.dharitri-sc-modules]
-version = "1.16.0"
+version = "1.13.6"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
@@ -21,7 +21,7 @@ num-traits = "0.2"
 hex = "0.4"
 
 [dev-dependencies.dharitri-sc-scenario]
-version = "1.16.0"
+version = "1.13.6"
 
 [dev-dependencies.crowdfunding-dcdt]
 path = "../crowdfunding-dcdt"

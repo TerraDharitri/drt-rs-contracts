@@ -4,7 +4,7 @@ use dharitri_sc::derive_imports::*;
 use dharitri_sc::imports::*;
 
 #[type_abi]
-#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem, Clone)]
+#[derive(TopEncode, TopDecode, NestedEncode, NestedDecode, ManagedVecItem)]
 pub struct EndpointInfo<M: ManagedTypeApi> {
     pub endpoint_name: ManagedBuffer<M>,
     pub input_fee_percentage: Percentage,
@@ -62,7 +62,7 @@ pub trait ExchangeActionsModule:
 
         let mapper = self.known_contracts(&sc_addr);
         let mut current_endpoints = mapper.get();
-        for new_endpoint in new_endpoints {
+        for new_endpoint in &new_endpoints {
             for current_endpoint in &current_endpoints {
                 require!(
                     current_endpoint.endpoint_name != new_endpoint.endpoint_name,
@@ -87,18 +87,22 @@ pub trait ExchangeActionsModule:
         let mut current_endpoints = mapper.get();
 
         for endpoint_to_remove in endpoint_names {
-            let endpoint_to_remove_index = current_endpoints
-                .iter()
-                .position(|endpoint| endpoint.endpoint_name == endpoint_to_remove);
+            let mut removed = false;
+            for (i, endpoint) in current_endpoints.iter().enumerate() {
+                if endpoint.endpoint_name == endpoint_to_remove {
+                    removed = true;
+                    current_endpoints.remove(i);
 
-            require!(endpoint_to_remove_index.is_some(), "Unknown endpoint name");
+                    break;
+                }
+            }
 
-            current_endpoints.remove(endpoint_to_remove_index.unwrap());
+            require!(removed, "Unknown endpoint name");
         }
     }
 
     /// forward an execute on dest context call on an exchange SC
-    #[payable]
+    #[payable("*")]
     #[endpoint(forwardExecuteOnDest)]
     fn forward_execute_on_dest(
         &self,
@@ -109,12 +113,11 @@ pub trait ExchangeActionsModule:
         self.require_not_paused();
         self.require_not_initial_launch();
 
-        // TODO: switch to rewa+dcdt multi transfer handling
-        let rewa_value = self.call_value().rewa_direct_non_strict().clone();
+        let rewa_value = self.call_value().rewa_value().clone_value();
         require!(rewa_value == 0, "Invalid payment");
 
         let caller = self.blockchain().get_caller();
-        let payments = self.call_value().all_dcdt_transfers().clone();
+        let payments = self.call_value().all_dcdt_transfers().clone_value();
         let endpoint_info = self.find_endpoint_info(&dest, &endpoint_name);
 
         let mut input_fees_percentage = ManagedVec::new();
@@ -187,7 +190,7 @@ pub trait ExchangeActionsModule:
         }
 
         match opt_info {
-            Some(info) => info.clone(),
+            Some(info) => info,
             None => sc_panic!("Unknown endpoint"),
         }
     }

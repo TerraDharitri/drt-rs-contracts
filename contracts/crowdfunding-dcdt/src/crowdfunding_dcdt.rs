@@ -29,7 +29,7 @@ pub trait Crowdfunding {
     }
 
     #[endpoint]
-    #[payable]
+    #[payable("*")]
     fn fund(&self) {
         let (token, _, payment) = self.call_value().rewa_or_single_dcdt().into_tuple();
 

@@ -5,10 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Upgrade:                              1
 // Endpoints:                            1
 // Async Callback:                       1
-// Total number of exported functions:   4
+// Total number of exported functions:   3
 
 #![no_std]
 
@@ -19,7 +18,6 @@ dharitri_sc_wasm_adapter::endpoints! {
     paymaster
     (
         init => init
-        upgrade => upgrade
         forwardExecution => forward_execution
     )
 }

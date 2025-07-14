@@ -6,9 +6,9 @@
 
 // Init:                                 1
 // Upgrade:                              1
-// Endpoints:                           41
+// Endpoints:                           40
 // Async Callback:                       1
-// Total number of exported functions:  44
+// Total number of exported functions:  43
 
 #![no_std]
 
@@ -39,7 +39,6 @@ dharitri_sc_wasm_adapter::endpoints! {
         proposeAsyncCall => propose_async_call
         proposeSCDeployFromSource => propose_sc_deploy_from_source
         proposeSCUpgradeFromSource => propose_sc_upgrade_from_source
-        proposeSyncCall => propose_sync_call
         proposeBatch => propose_batch
         sign => sign
         signBatch => sign_batch

@@ -13,7 +13,6 @@ const CROWDFUNDING_ADDRESS: TestSCAddress = TestSCAddress::new("crowdfunding-dcd
 fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new();
 
-    blockchain.set_current_dir_from_workspace("contracts/crowdfunding-dcdt");
     blockchain.register_contract(CODE_PATH, crowdfunding_dcdt::ContractBuilder);
     blockchain
 }

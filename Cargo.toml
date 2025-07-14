@@ -9,7 +9,7 @@ members = [
 
   "contracts/adder",
   "contracts/adder/meta",
-  "contracts/adder/interactor",
+  "contracts/adder/interact",
   "contracts/dcdt-transfer-with-fee",
   "contracts/dcdt-transfer-with-fee/meta",
   "contracts/bonding-curve-contract",
@@ -49,6 +49,8 @@ members = [
   "contracts/multisig",
   "contracts/multisig/meta",
   "contracts/multisig/interact",
+  "contracts/multisig-improved",
+  "contracts/multisig-improved/meta",
   "contracts/mystery-box",
   "contracts/mystery-box/meta",
   "contracts/nft-escrow",
@@ -67,10 +69,8 @@ members = [
   "contracts/pair-mock/meta",
   "contracts/paymaster",
   "contracts/paymaster/meta",
-  "contracts/paymaster/interactor",
   "contracts/ping-pong-rewa",
   "contracts/ping-pong-rewa/meta",
-  "contracts/ping-pong-rewa/interactor",
   "contracts/proxy-deployer",
   "contracts/proxy-deployer/meta",
   "contracts/proxy-pause",
@@ -82,5 +82,5 @@ members = [
   "contracts/token-release",
   "contracts/token-release/meta",
   "contracts/drt-game-sc",
-  "contracts/drt-game-sc/meta",
+  "contracts/drt-game-sc/meta"
 ]

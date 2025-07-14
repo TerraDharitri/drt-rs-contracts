@@ -3,7 +3,6 @@ use dharitri_sc_scenario::*;
 fn world() -> ScenarioWorld {
     let mut blockchain = ScenarioWorld::new();
 
-    blockchain.set_current_dir_from_workspace("contracts/ping-pong-rewa");
     blockchain.register_contract(
         "drtsc:output/ping-pong-rewa.drtsc.json",
         ping_pong_rewa::ContractBuilder,

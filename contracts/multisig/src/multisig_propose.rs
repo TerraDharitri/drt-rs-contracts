@@ -102,7 +102,7 @@ pub trait MultisigProposeModule: crate::multisig_state::MultisigStateModule {
         self.propose_action(Action::SendTransferExecuteDcdt(call_data))
     }
 
-    /// Propose a transaction in which the contract will perform an async call.
+    /// Propose a transaction in which the contract will perform an async call call.
     /// Can call smart contract endpoints directly.
     /// Can use DCDTTransfer/DCDTNFTTransfer/MultiDCDTTransfer to send tokens, while also optionally calling endpoints.
     /// Works well with builtin functions.
@@ -163,35 +163,6 @@ pub trait MultisigProposeModule: crate::multisig_state::MultisigStateModule {
             code_metadata,
             arguments: arguments.into_vec_of_buffers(),
         })
-    }
-
-    /// Propose a transaction in which the contract will perform a sync call.
-    /// Can call smart contract endpoints directly.
-    /// Can use DCDTTransfer/DCDTNFTTransfer/MultiDCDTTransfer to send tokens, while also optionally calling endpoints.
-    /// Works well with builtin functions.
-    /// Cannot simply send REWA directly without calling anything.
-    #[endpoint(proposeSyncCall)]
-    fn propose_sync_call(
-        &self,
-        to: ManagedAddress,
-        rewa_amount: BigUint,
-        opt_gas_limit: Option<GasLimit>,
-        function_call: FunctionCall,
-    ) -> ActionId {
-        require!(
-            rewa_amount > 0 || !function_call.is_empty(),
-            "proposed action has no effect"
-        );
-
-        let call_data = CallActionData {
-            to,
-            rewa_amount,
-            opt_gas_limit,
-            endpoint_name: function_call.function_name,
-            arguments: function_call.arg_buffer.into_vec_of_buffers(),
-        };
-
-        self.propose_action(Action::SendSyncCall(call_data))
     }
 
     #[endpoint(proposeBatch)]

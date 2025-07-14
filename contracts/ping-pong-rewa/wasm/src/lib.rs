@@ -5,10 +5,9 @@
 ////////////////////////////////////////////////////
 
 // Init:                                 1
-// Upgrade:                              1
-// Endpoints:                           11
+// Endpoints:                           10
 // Async Callback (empty):               1
-// Total number of exported functions:  14
+// Total number of exported functions:  12
 
 #![no_std]
 
@@ -19,12 +18,10 @@ dharitri_sc_wasm_adapter::endpoints! {
     ping_pong_rewa
     (
         init => init
-        upgrade => upgrade
         ping => ping
         pong => pong
         pongAll => pong_all
         getUserAddresses => get_user_addresses
-        getContractState => get_contract_state
         getPingAmount => ping_amount
         getDeadline => deadline
         getActivationTimestamp => activation_timestamp

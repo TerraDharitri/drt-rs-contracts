@@ -145,7 +145,7 @@ pub trait Lottery {
         if let Some(whitelist) = opt_whitelist.as_option() {
             let mut mapper = self.lottery_whitelist(&lottery_name);
             for addr in &*whitelist {
-                mapper.insert(addr.clone());
+                mapper.insert(addr);
             }
         }
 
@@ -163,7 +163,7 @@ pub trait Lottery {
     }
 
     #[endpoint]
-    #[payable]
+    #[payable("*")]
     fn buy_ticket(&self, lottery_name: ManagedBuffer) {
         let (token_identifier, payment) = self.call_value().rewa_or_single_fungible_dcdt();
 

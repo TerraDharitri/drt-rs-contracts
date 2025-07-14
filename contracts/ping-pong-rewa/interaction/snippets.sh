@@ -1,7 +1,7 @@
 PEM_FILE="./ping-pong.pem"
-PING_PONG_CONTRACT="./drt-rs-sdk/contracts/examples/ping-pong-rewa"
+PING_PONG_CONTRACT="./-sdk-rs/contracts/examples/ping-pong-rewa"
 
-PROXY_ARGUMENT="--proxy=https://devnet-api.dharitri.com"
+PROXY_ARGUMENT="--proxy=https://devnet-api.dharitri.org"
 CHAIN_ARGUMENT="--chain=D"
 
 build_ping_pong() {

@@ -1,27 +1,40 @@
+#![allow(unused)]
+
+use std::borrow::Borrow;
+
 use adder::Adder;
 use factorial::Factorial;
 use multisig::{
     action::GasLimit, multisig_perform::MultisigPerformModule,
     multisig_propose::MultisigProposeModule, multisig_sign::MultisigSignModule,
-    user_role::UserRole, Multisig,
+    multisig_state::GroupId, user_role::UserRole, Multisig,
 };
 use dharitri_sc::{
     api::ManagedTypeApi,
+    codec::multi_types::OptionalValue,
+    storage::mappers::SingleValue,
     types::{
-        Address, BigUint, BoxedBytes, CodeMetadata, FunctionCall, ManagedBuffer, ManagedVec,
-        TestAddress, TestSCAddress,
+        Address, BigUint, BoxedBytes, CodeMetadata, FunctionCall, ManagedAddress, ManagedBuffer,
+        ManagedVec,
     },
 };
 use dharitri_sc_scenario::{
-    imports::DrtscPath, managed_address, managed_biguint, rust_biguint, ExpectMessage,
-    ReturnsHandledOrError, ScenarioTxWhitebox, ScenarioWorld,
+    managed_address, managed_biguint,
+    dharitri_chain_vm::types::VMAddress,
+    rust_biguint,
+    scenario_model::{
+        Account, AddressValue, CheckAccount, CheckStateStep, ScCallStep, ScDeployStep, ScQueryStep,
+        SetStateStep, TxExpect, TypedScQuery,
+    },
+    testing_framework::TxResult,
+    DebugApi, ScenarioWorld, WhiteboxContract,
 };
 
-const OWNER: TestAddress = TestAddress::new("owner");
-const PROPOSER: TestAddress = TestAddress::new("proposer");
-const BOARD_MEMBER: TestAddress = TestAddress::new("board-member");
-const MULTISIG: TestSCAddress = TestSCAddress::new("multisig");
-const CODE_PATH: DrtscPath = DrtscPath::new("output/multisig.drtsc.json");
+const OWNER_ADDRESS_EXPR: &str = "address:owner";
+const PROPOSER_ADDRESS_EXPR: &str = "address:proposer";
+const BOARD_MEMBER_ADDRESS_EXPR: &str = "address:board-member";
+const MULTISIG_ADDRESS_EXPR: &str = "sc:multisig";
+const MULTISIG_PATH_EXPR: &str = "file:output/multisig.wasm";
 const QUORUM_SIZE: usize = 1;
 
 type RustBigUint = num_bigint::BigUint;
@@ -59,36 +72,47 @@ pub struct CallActionDataRaw {
 fn world() -> ScenarioWorld {
     let mut blockchain: ScenarioWorld = ScenarioWorld::new();
 
-    blockchain.set_current_dir_from_workspace("contracts/multisig");
-    blockchain.register_contract(CODE_PATH, multisig::ContractBuilder);
+    blockchain.register_contract(MULTISIG_PATH_EXPR, multisig::ContractBuilder);
     blockchain
 }
 
 fn setup() -> ScenarioWorld {
     // setup
     let mut world = world();
+    let multisig_whitebox = WhiteboxContract::new(MULTISIG_ADDRESS_EXPR, multisig::contract_obj);
+    let multisig_code = world.code_expression(MULTISIG_PATH_EXPR);
 
-    world
-        .account(OWNER)
-        .nonce(1)
-        .new_address(OWNER, 1, MULTISIG);
-    world.account(PROPOSER).nonce(1).balance(100_000_000u64);
-    world.account(BOARD_MEMBER).nonce(1);
+    world.set_state_step(
+        SetStateStep::new()
+            .put_account(OWNER_ADDRESS_EXPR, Account::new().nonce(1))
+            .new_address(OWNER_ADDRESS_EXPR, 1, MULTISIG_ADDRESS_EXPR)
+            .put_account(
+                PROPOSER_ADDRESS_EXPR,
+                Account::new().nonce(1).balance(100_000_000u64),
+            )
+            .put_account(BOARD_MEMBER_ADDRESS_EXPR, Account::new().nonce(1)),
+    );
 
     // init multisig
-    world
-        .tx()
-        .from(OWNER)
-        .raw_deploy()
-        .code(CODE_PATH)
-        .new_address(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_deploy(
+        &multisig_whitebox,
+        ScDeployStep::new()
+            .from(OWNER_ADDRESS_EXPR)
+            .code(multisig_code),
+        |sc| {
             let mut board_members = ManagedVec::new();
-            board_members.push(BOARD_MEMBER.to_managed_address());
+            board_members.push(managed_address!(&address_expr_to_address(
+                BOARD_MEMBER_ADDRESS_EXPR
+            )));
 
             sc.init(QUORUM_SIZE, board_members.into());
-            sc.change_user_role(0, PROPOSER.to_managed_address(), UserRole::Proposer);
-        });
+            sc.change_user_role(
+                0,
+                managed_address!(&address_expr_to_address(PROPOSER_ADDRESS_EXPR)),
+                UserRole::Proposer,
+            );
+        },
+    );
 
     world
 }
@@ -110,16 +134,20 @@ fn call_propose(
         ActionRaw::SCUpgradeFromSource { amount, .. } => amount.clone(),
         _ => rust_biguint!(0),
     };
+    let amount_bytes = rewa_amount.to_bytes_be();
+    let amount_rust_biguint = num_bigint::BigUint::from_bytes_be(amount_bytes.as_slice());
 
     let mut action_id = 0;
 
-    let result = world
-        .tx()
-        .from(PROPOSER)
-        .to(MULTISIG)
-        .rewa(BigUint::from(rewa_amount))
-        .returns(ReturnsHandledOrError::new())
-        .whitebox(multisig::contract_obj, |sc| {
+    let multisig_whitebox = WhiteboxContract::new(MULTISIG_ADDRESS_EXPR, multisig::contract_obj);
+
+    world.whitebox_call_check(
+        &multisig_whitebox,
+        ScCallStep::new()
+            .from(PROPOSER_ADDRESS_EXPR)
+            .rewa_value(amount_rust_biguint)
+            .no_expect(),
+        |sc| {
             action_id = match action {
                 ActionRaw::_Nothing => panic!("Invalid action"),
                 ActionRaw::AddBoardMember(addr) => {
@@ -171,11 +199,12 @@ fn call_propose(
                     boxed_bytes_vec_to_managed(arguments).into(),
                 ),
             }
-        });
-
-    if let Err(err) = result {
-        assert_eq!(expected_message.unwrap_or_default(), err.message);
-    }
+        },
+        |r| match expected_message {
+            Some(msg) => r.assert_user_error(msg),
+            None => r.assert_ok(),
+        },
+    );
 
     action_id
 }
@@ -183,296 +212,341 @@ fn call_propose(
 #[test]
 fn test_add_board_member() {
     let mut world = setup();
+    let multisig_whitebox = WhiteboxContract::new(MULTISIG_ADDRESS_EXPR, multisig::contract_obj);
 
-    let new_board_member: TestAddress = TestAddress::new("new-board-member");
-    world.account(new_board_member).nonce(1);
+    const NEW_BOARD_MEMBER_ADDRESS_EXPR: &str = "address:new-board-member";
+    world.set_state_step(
+        SetStateStep::new().put_account(NEW_BOARD_MEMBER_ADDRESS_EXPR, Account::new().nonce(1)),
+    );
 
-    world
-        .query()
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
-            // check role before
-            let user_role = sc.user_role(new_board_member.to_managed_address());
-            assert_eq!(user_role, UserRole::None);
-        });
+    world.whitebox_query(&multisig_whitebox, |sc| {
+        // check role before
+        let user_role = sc.user_role(managed_address!(&address_expr_to_address(
+            NEW_BOARD_MEMBER_ADDRESS_EXPR
+        )));
+        assert_eq!(user_role, UserRole::None);
+    });
 
     let action_id = call_propose(
         &mut world,
-        ActionRaw::AddBoardMember(new_board_member.to_address()),
+        ActionRaw::AddBoardMember(address_expr_to_address(NEW_BOARD_MEMBER_ADDRESS_EXPR)),
         None,
     );
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
-            sc.sign(action_id);
-        });
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| {
             let _ = sc.perform_action_endpoint(action_id);
-        });
+        },
+    );
 
-    world
-        .query()
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
-            // check role after
-            let user_role = sc.user_role(new_board_member.to_managed_address());
-            assert_eq!(user_role, UserRole::BoardMember);
+    world.whitebox_query(&multisig_whitebox, |sc| {
+        // check role after
+        let user_role = sc.user_role(managed_address!(&address_expr_to_address(
+            NEW_BOARD_MEMBER_ADDRESS_EXPR
+        )));
+        assert_eq!(user_role, UserRole::BoardMember);
 
-            let board_members = sc.get_all_board_members().to_vec();
-
-            assert_eq!(*board_members.get(0), BOARD_MEMBER);
-            assert_eq!(*board_members.get(1), new_board_member);
-        });
+        let board_members = sc.get_all_board_members().to_vec();
+        assert_eq!(
+            (board_members.get(0).borrow() as &ManagedAddress<DebugApi>).clone(),
+            managed_address!(&address_expr_to_address(BOARD_MEMBER_ADDRESS_EXPR))
+        );
+        assert_eq!(
+            (board_members.get(1).borrow() as &ManagedAddress<DebugApi>).clone(),
+            managed_address!(&address_expr_to_address(NEW_BOARD_MEMBER_ADDRESS_EXPR))
+        );
+    });
 }
 
 #[test]
 fn test_add_proposer() {
     let mut world = setup();
+    let multisig_whitebox = WhiteboxContract::new(MULTISIG_ADDRESS_EXPR, multisig::contract_obj);
 
-    let new_proposer: TestAddress = TestAddress::new("new-proposer");
-    world.account(new_proposer).nonce(1);
+    const NEW_PROPOSER_ADDRESS_EXPR: &str = "address:new-proposer";
+    world.set_state_step(
+        SetStateStep::new().put_account(NEW_PROPOSER_ADDRESS_EXPR, Account::new().nonce(1)),
+    );
 
-    world
-        .query()
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
-            // check role before
-            let user_role = sc.user_role(new_proposer.to_managed_address());
-
-            assert_eq!(user_role, UserRole::None);
-        });
+    world.whitebox_query(&multisig_whitebox, |sc| {
+        // check role before
+        let user_role = sc.user_role(managed_address!(&address_expr_to_address(
+            NEW_PROPOSER_ADDRESS_EXPR
+        )));
+        assert_eq!(user_role, UserRole::None);
+    });
 
     let action_id = call_propose(
         &mut world,
-        ActionRaw::AddProposer(new_proposer.to_address()),
+        ActionRaw::AddProposer(address_expr_to_address(NEW_PROPOSER_ADDRESS_EXPR)),
         None,
     );
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.sign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
+
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| {
             let _ = sc.perform_action_endpoint(action_id);
-        });
+        },
+    );
 
-    world
-        .query()
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
-            // check role after
-            let user_role = sc.user_role(new_proposer.to_managed_address());
+    world.whitebox_query(&multisig_whitebox, |sc| {
+        // check role after
+        let user_role = sc.user_role(managed_address!(&address_expr_to_address(
+            NEW_PROPOSER_ADDRESS_EXPR
+        )));
+        assert_eq!(user_role, UserRole::Proposer);
 
-            assert_eq!(user_role, UserRole::Proposer);
-
-            let proposers = sc.get_all_proposers().to_vec();
-            assert_eq!(*proposers.get(0), PROPOSER);
-            assert_eq!(*proposers.get(1), new_proposer);
-        });
+        let proposers = sc.get_all_proposers().to_vec();
+        assert_eq!(
+            (proposers.get(0).borrow() as &ManagedAddress<DebugApi>).clone(),
+            managed_address!(&address_expr_to_address(PROPOSER_ADDRESS_EXPR))
+        );
+        assert_eq!(
+            (proposers.get(1).borrow() as &ManagedAddress<DebugApi>).clone(),
+            managed_address!(&address_expr_to_address(NEW_PROPOSER_ADDRESS_EXPR))
+        );
+    });
 }
 
 #[test]
 fn test_remove_proposer() {
     let mut world = setup();
+    let multisig_whitebox = WhiteboxContract::new(MULTISIG_ADDRESS_EXPR, multisig::contract_obj);
 
-    world
-        .query()
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
-            // check role before
-            let user_role = sc.user_role(PROPOSER.to_managed_address());
-
-            assert_eq!(user_role, UserRole::Proposer);
-        });
+    world.whitebox_query(&multisig_whitebox, |sc| {
+        // check role before
+        let user_role = sc.user_role(managed_address!(&address_expr_to_address(
+            PROPOSER_ADDRESS_EXPR
+        )));
+        assert_eq!(user_role, UserRole::Proposer);
+    });
 
     let action_id = call_propose(
         &mut world,
-        ActionRaw::RemoveUser(PROPOSER.to_address()),
+        ActionRaw::RemoveUser(address_expr_to_address(PROPOSER_ADDRESS_EXPR)),
         None,
     );
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.sign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
+
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| {
             let _ = sc.perform_action_endpoint(action_id);
-        });
+        },
+    );
 
-    world
-        .query()
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
-            // check role after
-            let user_role = sc.user_role(PROPOSER.to_managed_address());
+    world.whitebox_query(&multisig_whitebox, |sc| {
+        // check role after
+        let user_role = sc.user_role(managed_address!(&address_expr_to_address(
+            PROPOSER_ADDRESS_EXPR
+        )));
+        assert_eq!(user_role, UserRole::None);
 
-            assert_eq!(user_role, UserRole::None);
-
-            let proposers = sc.get_all_proposers();
-            assert!(proposers.is_empty());
-        });
+        let proposers = sc.get_all_proposers().to_vec();
+        assert!(proposers.is_empty());
+    });
 }
 
 #[test]
 fn test_try_remove_all_board_members() {
     let mut world = setup();
+    let multisig_whitebox = WhiteboxContract::new(MULTISIG_ADDRESS_EXPR, multisig::contract_obj);
 
     let action_id = call_propose(
         &mut world,
-        ActionRaw::RemoveUser(BOARD_MEMBER.to_address()),
+        ActionRaw::RemoveUser(address_expr_to_address(BOARD_MEMBER_ADDRESS_EXPR)),
         None,
     );
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.sign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .returns(ExpectMessage("quorum cannot exceed board size"))
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
+
+    world.whitebox_call_check(
+        &multisig_whitebox,
+        ScCallStep::new()
+            .from(BOARD_MEMBER_ADDRESS_EXPR)
+            .no_expect(),
+        |sc| {
             let _ = sc.perform_action_endpoint(action_id);
-        });
+        },
+        |r| {
+            r.assert_user_error("quorum cannot exceed board size");
+        },
+    );
 }
 
 #[test]
 fn test_change_quorum() {
     let mut world = setup();
+    let multisig_whitebox = WhiteboxContract::new(MULTISIG_ADDRESS_EXPR, multisig::contract_obj);
 
     let new_quorum_size = 2;
 
     // try change quorum > board size
     let action_id = call_propose(&mut world, ActionRaw::ChangeQuorum(new_quorum_size), None);
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.sign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .returns(ExpectMessage("quorum cannot exceed board size"))
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
+
+    world.whitebox_call_check(
+        &multisig_whitebox,
+        ScCallStep::new()
+            .from(BOARD_MEMBER_ADDRESS_EXPR)
+            .no_expect(),
+        |sc| {
             let _ = sc.perform_action_endpoint(action_id);
-        });
+        },
+        |r| {
+            r.assert_user_error("quorum cannot exceed board size");
+        },
+    );
 
     // try discard before unsigning
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .returns(ExpectMessage("cannot discard action with valid signatures"))
-        .whitebox(multisig::contract_obj, |sc| sc.discard_action(action_id));
+    world.whitebox_call_check(
+        &multisig_whitebox,
+        ScCallStep::new()
+            .from(BOARD_MEMBER_ADDRESS_EXPR)
+            .no_expect(),
+        |sc| {
+            sc.discard_action(action_id);
+        },
+        |r| {
+            r.assert_user_error("cannot discard action with valid signatures");
+        },
+    );
 
     // unsign and discard action
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.unsign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.discard_action(action_id));
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.unsign(action_id),
+    );
+
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| {
+            sc.discard_action(action_id);
+        },
+    );
 
     // try sign discarded action
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .returns(ExpectMessage("action does not exist"))
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call_check(
+        &multisig_whitebox,
+        ScCallStep::new()
+            .from(BOARD_MEMBER_ADDRESS_EXPR)
+            .no_expect(),
+        |sc| {
             sc.sign(action_id);
-        });
+        },
+        |r| {
+            r.assert_user_error("action does not exist");
+        },
+    );
 
     // add another board member
-    let new_board_member: TestAddress = TestAddress::new("new-board-member");
-    world.account(new_board_member).nonce(1);
+    const NEW_BOARD_MEMBER_ADDRESS_EXPR: &str = "address:new-board-member";
+    world.set_state_step(
+        SetStateStep::new().put_account(NEW_BOARD_MEMBER_ADDRESS_EXPR, Account::new().nonce(1)),
+    );
 
     let action_id = call_propose(
         &mut world,
-        ActionRaw::AddBoardMember(new_board_member.to_address()),
+        ActionRaw::AddBoardMember(address_expr_to_address(NEW_BOARD_MEMBER_ADDRESS_EXPR)),
         None,
     );
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.sign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
+
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| {
             let _ = sc.perform_action_endpoint(action_id);
-        });
+        },
+    );
 
     // change quorum to 2
     let action_id = call_propose(&mut world, ActionRaw::ChangeQuorum(new_quorum_size), None);
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.sign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
+
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| {
             let _ = sc.perform_action_endpoint(action_id);
-        });
+        },
+    );
 }
 
 #[test]
 fn test_transfer_execute_to_user() {
     let mut world = setup();
+    let multisig_whitebox = WhiteboxContract::new(MULTISIG_ADDRESS_EXPR, multisig::contract_obj);
 
-    let new_user: TestAddress = TestAddress::new("new-user");
-    world.account(new_user).nonce(1);
+    const NEW_USER_ADDRESS_EXPR: &str = "address:new-user";
+    world.set_state_step(
+        SetStateStep::new().put_account(NEW_USER_ADDRESS_EXPR, Account::new().nonce(1)),
+    );
 
-    let rewa_amount: u64 = 100;
+    const REWA_AMOUNT: u64 = 100;
 
-    world
-        .tx()
-        .from(PROPOSER)
-        .to(MULTISIG)
-        .rewa(rewa_amount)
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new()
+            .from(PROPOSER_ADDRESS_EXPR)
+            .rewa_value(REWA_AMOUNT),
+        |sc| {
             sc.deposit();
-        });
-    world.check_account(MULTISIG).balance(rewa_amount);
+        },
+    );
+
+    world.check_state_step(CheckStateStep::new().put_account(
+        MULTISIG_ADDRESS_EXPR,
+        CheckAccount::new().balance(REWA_AMOUNT.to_string().as_str()),
+    ));
 
     // failed attempt
-    call_propose(
+    let action_id = call_propose(
         &mut world,
         ActionRaw::SendTransferExecute(CallActionDataRaw {
-            to: new_user.to_address(),
+            to: address_expr_to_address(NEW_USER_ADDRESS_EXPR),
             rewa_amount: rust_biguint!(0),
             endpoint_name: BoxedBytes::empty(),
             arguments: Vec::new(),
@@ -484,58 +558,67 @@ fn test_transfer_execute_to_user() {
     let action_id = call_propose(
         &mut world,
         ActionRaw::SendTransferExecute(CallActionDataRaw {
-            to: new_user.to_address(),
-            rewa_amount: rust_biguint!(rewa_amount),
+            to: address_expr_to_address(NEW_USER_ADDRESS_EXPR),
+            rewa_amount: rust_biguint!(REWA_AMOUNT),
             endpoint_name: BoxedBytes::empty(),
             arguments: Vec::new(),
         }),
         None,
     );
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.sign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
-            let _ = sc.perform_action_endpoint(action_id);
-        });
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
 
-    world.check_account(new_user).balance(rewa_amount);
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| {
+            let _ = sc.perform_action_endpoint(action_id);
+        },
+    );
+
+    world.check_state_step(CheckStateStep::new().put_account(
+        NEW_USER_ADDRESS_EXPR,
+        CheckAccount::new().balance(REWA_AMOUNT.to_string().as_str()),
+    ));
 }
 
 #[test]
 fn test_transfer_execute_sc_all() {
     let mut world = setup();
+    let multisig_whitebox = WhiteboxContract::new(MULTISIG_ADDRESS_EXPR, multisig::contract_obj);
 
-    let adder_owner: TestAddress = TestAddress::new("adder-owner");
-    let adder_address: TestSCAddress = TestSCAddress::new("adder");
-    let adder_code_path: DrtscPath = DrtscPath::new("test-contracts/adder.drtsc.json");
+    let adder_whitebox = WhiteboxContract::new(ADDER_ADDRESS_EXPR, adder::contract_obj);
+    let adder_code = world.code_expression(ADDER_PATH_EXPR);
 
-    world.register_contract(adder_code_path, adder::ContractBuilder);
-    world
-        .account(adder_owner)
-        .nonce(1)
-        .new_address(adder_owner, 1, adder_address);
+    const ADDER_OWNER_ADDRESS_EXPR: &str = "address:adder-owner";
+    const ADDER_ADDRESS_EXPR: &str = "sc:adder";
+    const ADDER_PATH_EXPR: &str = "file:test-contracts/adder.wasm";
 
-    world
-        .tx()
-        .raw_deploy()
-        .from(adder_owner)
-        .code(adder_code_path)
-        .new_address(adder_address)
-        .whitebox(adder::contract_obj, |sc| {
-            sc.init(BigUint::from(5u64));
-        });
+    world.register_contract(ADDER_PATH_EXPR, adder::ContractBuilder);
+    world.set_state_step(
+        SetStateStep::new()
+            .put_account(ADDER_OWNER_ADDRESS_EXPR, Account::new().nonce(1))
+            .new_address(ADDER_OWNER_ADDRESS_EXPR, 1, ADDER_ADDRESS_EXPR),
+    );
+
+    world.whitebox_deploy(
+        &adder_whitebox,
+        ScDeployStep::new()
+            .from(ADDER_OWNER_ADDRESS_EXPR)
+            .code(adder_code),
+        |sc| {
+            sc.init(managed_biguint!(5));
+        },
+    );
 
     let action_id = call_propose(
         &mut world,
         ActionRaw::SendTransferExecute(CallActionDataRaw {
-            to: adder_address.to_address(),
+            to: address_expr_to_address(ADDER_ADDRESS_EXPR),
             rewa_amount: 0u64.into(),
             endpoint_name: BoxedBytes::from(&b"add"[..]),
             arguments: vec![BoxedBytes::from(&[5u8][..])],
@@ -543,57 +626,60 @@ fn test_transfer_execute_sc_all() {
         None,
     );
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.sign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
-            let _ = sc.perform_action_endpoint(action_id);
-        });
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
 
-    world
-        .query()
-        .to(adder_address)
-        .whitebox(adder::contract_obj, |sc| {
-            let actual_sum = sc.sum().get();
-            let expected_sum = managed_biguint!(10);
-            assert_eq!(actual_sum, expected_sum);
-        });
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| {
+            let _ = sc.perform_action_endpoint(action_id);
+        },
+    );
+
+    world.whitebox_query(&adder_whitebox, |sc| {
+        let actual_sum = sc.sum().get();
+        let expected_sum = managed_biguint!(10);
+        assert_eq!(actual_sum, expected_sum);
+    });
 }
 
 #[test]
 fn test_async_call_to_sc() {
     let mut world = setup();
+    let multisig_whitebox = WhiteboxContract::new(MULTISIG_ADDRESS_EXPR, multisig::contract_obj);
 
-    let adder_owner: TestAddress = TestAddress::new("adder-owner");
-    let adder_address: TestSCAddress = TestSCAddress::new("adder");
-    let adder_code_path: DrtscPath = DrtscPath::new("test-contracts/adder.drtsc.json");
+    let adder_whitebox = WhiteboxContract::new(ADDER_ADDRESS_EXPR, adder::contract_obj);
+    let adder_code = world.code_expression(ADDER_PATH_EXPR);
 
-    world.register_contract(adder_code_path, adder::ContractBuilder);
-    world
-        .account(adder_owner)
-        .nonce(1)
-        .new_address(adder_owner, 1, adder_address);
+    const ADDER_OWNER_ADDRESS_EXPR: &str = "address:adder-owner";
+    const ADDER_ADDRESS_EXPR: &str = "sc:adder";
+    const ADDER_PATH_EXPR: &str = "file:test-contracts/adder.wasm";
 
-    world
-        .tx()
-        .raw_deploy()
-        .from(adder_owner)
-        .code(adder_code_path)
-        .new_address(adder_address)
-        .whitebox(adder::contract_obj, |sc| {
-            sc.init(BigUint::from(5u64));
-        });
+    world.register_contract(ADDER_PATH_EXPR, adder::ContractBuilder);
+    world.set_state_step(
+        SetStateStep::new()
+            .put_account(ADDER_OWNER_ADDRESS_EXPR, Account::new().nonce(1))
+            .new_address(ADDER_OWNER_ADDRESS_EXPR, 1, ADDER_ADDRESS_EXPR),
+    );
+
+    world.whitebox_deploy(
+        &adder_whitebox,
+        ScDeployStep::new()
+            .from(ADDER_OWNER_ADDRESS_EXPR)
+            .code(adder_code),
+        |sc| {
+            sc.init(managed_biguint!(5));
+        },
+    );
 
     let action_id = call_propose(
         &mut world,
         ActionRaw::SendAsyncCall(CallActionDataRaw {
-            to: adder_address.to_address(),
+            to: address_expr_to_address(ADDER_ADDRESS_EXPR),
             rewa_amount: 0u64.into(),
             endpoint_name: BoxedBytes::from(&b"add"[..]),
             arguments: vec![BoxedBytes::from(&[5u8][..])],
@@ -601,84 +687,93 @@ fn test_async_call_to_sc() {
         None,
     );
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.sign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
+
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| {
             let _ = sc.perform_action_endpoint(action_id);
-        });
-    world
-        .query()
-        .to(adder_address)
-        .whitebox(adder::contract_obj, |sc| {
-            let actual_sum = sc.sum().get();
-            let expected_sum = managed_biguint!(10);
-            assert_eq!(actual_sum, expected_sum);
-        });
+        },
+    );
+
+    world.whitebox_query(&adder_whitebox, |sc| {
+        let actual_sum = sc.sum().get();
+        let expected_sum = managed_biguint!(10);
+        assert_eq!(actual_sum, expected_sum);
+    });
 }
 
 #[test]
 fn test_deploy_and_upgrade_from_source() {
     let mut world = setup();
+    let multisig_whitebox = WhiteboxContract::new(MULTISIG_ADDRESS_EXPR, multisig::contract_obj);
 
-    let new_adder_address: TestSCAddress = TestSCAddress::new("new-adder");
-    let adder_owner: TestAddress = TestAddress::new("adder-owner");
-    let adder_address: TestSCAddress = TestSCAddress::new("adder");
-    let adder_path: DrtscPath = DrtscPath::new("test-contracts/adder.drtsc.json");
+    let adder_whitebox = WhiteboxContract::new(ADDER_ADDRESS_EXPR, adder::contract_obj);
+    let adder_code = world.code_expression(ADDER_PATH_EXPR);
 
-    world.register_contract(adder_path, adder::ContractBuilder);
-    world
-        .account(adder_owner)
-        .nonce(1)
-        .new_address(adder_owner, 1, adder_address)
-        .new_address(MULTISIG, 0, new_adder_address);
+    let new_adder_whitebox = WhiteboxContract::new(NEW_ADDER_ADDRESS_EXPR, adder::contract_obj);
 
-    world
-        .tx()
-        .raw_deploy()
-        .from(adder_owner)
-        .code(adder_path)
-        .new_address(adder_address)
-        .whitebox(adder::contract_obj, |sc| {
-            sc.init(BigUint::from(5u64));
-        });
+    const ADDER_OWNER_ADDRESS_EXPR: &str = "address:adder-owner";
+    const ADDER_ADDRESS_EXPR: &str = "sc:adder";
+    const NEW_ADDER_ADDRESS_EXPR: &str = "sc:new-adder";
+    const ADDER_PATH_EXPR: &str = "file:test-contracts/adder.wasm";
+
+    world.register_contract(ADDER_PATH_EXPR, adder::ContractBuilder);
+    world.set_state_step(
+        SetStateStep::new()
+            .put_account(ADDER_OWNER_ADDRESS_EXPR, Account::new().nonce(1))
+            .new_address(ADDER_OWNER_ADDRESS_EXPR, 1, ADDER_ADDRESS_EXPR)
+            .new_address(MULTISIG_ADDRESS_EXPR, 0, NEW_ADDER_ADDRESS_EXPR),
+    );
+
+    world.whitebox_deploy(
+        &adder_whitebox,
+        ScDeployStep::new()
+            .from(ADDER_OWNER_ADDRESS_EXPR)
+            .code(adder_code),
+        |sc| {
+            sc.init(managed_biguint!(5));
+        },
+    );
 
     let action_id = call_propose(
         &mut world,
         ActionRaw::SCDeployFromSource {
             amount: 0u64.into(),
-            source: adder_address.to_address(),
+            source: address_expr_to_address(ADDER_ADDRESS_EXPR),
             code_metadata: CodeMetadata::all(),
             arguments: vec![BoxedBytes::from(&[5u8][..])],
         },
         None,
     );
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.sign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
+
+    let mut addr = Address::zero();
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| {
             let opt_address = sc.perform_action_endpoint(action_id);
-            let addr = opt_address.into_option().unwrap().to_address();
-            assert_eq!(new_adder_address.to_address(), addr);
-        });
+            addr = opt_address.into_option().unwrap().to_address();
+        },
+    );
+
+    assert_eq!(address_expr_to_address(NEW_ADDER_ADDRESS_EXPR), addr);
 
     let action_id = call_propose(
         &mut world,
         ActionRaw::SendTransferExecute(CallActionDataRaw {
-            to: new_adder_address.to_address(),
+            to: address_expr_to_address(NEW_ADDER_ADDRESS_EXPR),
             rewa_amount: 0u64.into(),
             endpoint_name: BoxedBytes::from(&b"add"[..]),
             arguments: vec![BoxedBytes::from(&[5u8][..])],
@@ -686,66 +781,71 @@ fn test_deploy_and_upgrade_from_source() {
         None,
     );
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.sign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
+
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| {
             let _ = sc.perform_action_endpoint(action_id);
-        });
-    world
-        .query()
-        .to(new_adder_address)
-        .whitebox(adder::contract_obj, |sc| {
-            let actual_sum = sc.sum().get();
-            let expected_sum = managed_biguint!(10);
-            assert_eq!(actual_sum, expected_sum);
-        });
+        },
+    );
 
-    let factorial_address: TestSCAddress = TestSCAddress::new("factorial");
-    let factorial_code: DrtscPath = DrtscPath::new("test-contracts/factorial.drtsc.json");
+    world.whitebox_query(&new_adder_whitebox, |sc| {
+        let actual_sum = sc.sum().get();
+        let expected_sum = managed_biguint!(10);
+        assert_eq!(actual_sum, expected_sum);
+    });
 
-    world.register_contract(factorial_code, factorial::ContractBuilder);
-    world
-        .tx()
-        .raw_deploy()
-        .from(OWNER)
-        .code(factorial_code)
-        .new_address(factorial_address)
-        .whitebox(factorial::contract_obj, |sc| {
-            sc.init();
-        });
+    let factorial_code = world.code_expression(FACTORIAL_PATH_EXPR);
+
+    const FACTORIAL_ADDRESS_EXPR: &str = "sc:factorial";
+    const FACTORIAL_PATH_EXPR: &str = "file:test-contracts/factorial.wasm";
+
+    world.register_contract(FACTORIAL_PATH_EXPR, factorial::ContractBuilder);
+    world.set_state_step(SetStateStep::new().put_account(
+        FACTORIAL_ADDRESS_EXPR,
+        Account::new().nonce(1).code(factorial_code.clone()),
+    ));
 
     let action_id = call_propose(
         &mut world,
         ActionRaw::SCUpgradeFromSource {
-            source: factorial_address.to_address(),
+            source: address_expr_to_address(FACTORIAL_ADDRESS_EXPR),
             amount: 0u64.into(),
             code_metadata: CodeMetadata::all(),
             arguments: Vec::new(),
-            sc_address: adder_address.to_address(),
+            sc_address: address_expr_to_address(ADDER_ADDRESS_EXPR),
         },
         None,
     );
 
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| sc.sign(action_id));
-    world
-        .tx()
-        .from(BOARD_MEMBER)
-        .to(MULTISIG)
-        .whitebox(multisig::contract_obj, |sc| {
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| sc.sign(action_id),
+    );
+
+    world.whitebox_call(
+        &multisig_whitebox,
+        ScCallStep::new().from(BOARD_MEMBER_ADDRESS_EXPR),
+        |sc| {
             let _ = sc.perform_action_endpoint(action_id);
-        });
-    world.check_account(adder_address).code(factorial_code);
+        },
+    );
+
+    world.check_state_step(
+        CheckStateStep::new()
+            .put_account(ADDER_ADDRESS_EXPR, CheckAccount::new().code(factorial_code)),
+    );
+}
+
+fn address_expr_to_address(address_expr: &str) -> Address {
+    AddressValue::from(address_expr).to_address()
 }
 
 fn boxed_bytes_vec_to_managed<M: ManagedTypeApi>(

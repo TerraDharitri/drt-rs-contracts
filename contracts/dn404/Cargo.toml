@@ -9,10 +9,10 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies.dharitri-sc]
-version = "=1.16.0"
+version = "=1.13.6"
 
 [dependencies.dharitri-sc-modules]
-version = "=1.16.0"
+version = "=1.13.6"
 
 [dev-dependencies]
 num-bigint = "0.4.2"
@@ -21,4 +21,4 @@ hex = "0.4"
 hex-literal = "0.4.1"
 
 [dev-dependencies.dharitri-sc-scenario]
-version = "=1.16.0"
+version = "=1.13.6"

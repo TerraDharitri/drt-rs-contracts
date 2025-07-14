@@ -1,14 +1,7 @@
 use dharitri_sc_scenario::*;
 
 fn world() -> ScenarioWorld {
-    let mut blockchain = ScenarioWorld::new();
-
-    blockchain.set_current_dir_from_workspace("contracts/nft-minter");
-    blockchain.register_contract(
-        "drtsc:output/nft-minter.drtsc.json",
-        nft_minter::ContractBuilder,
-    );
-    blockchain
+    todo!()
 }
 
 #[test]
